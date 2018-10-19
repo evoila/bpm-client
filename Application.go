@@ -1,13 +1,26 @@
 package main
 
 import (
-	"github.com/evoila/BPM-Client/rest"
+	"os"
+
+	"github.com/evoila/BPM-Client/rest/bundle"
 )
 
 func main() {
+	moveToReleaseDir()
 
-	//	rest.DownloadBlob(url, "83204f44-fee1-4ecf-b973-d22c86fdeb62", "openjdk.tar.gz")
-	rest.GetPackages(url)
+	bundle.ZipPackage(packageName)
 }
 
+func moveToReleaseDir() {
+	/*	dir, err := os.Getwd()
+		if err != nil {
+			panic(err)
+		}
+	*/
+	dir := "/home/johannes/workspace/osb-bosh-kafka"
+	os.Chdir(dir)
+}
+
+const packageName = "openjdk"
 const url = "http://localhost:8080"
