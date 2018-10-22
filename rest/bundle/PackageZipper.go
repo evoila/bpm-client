@@ -8,12 +8,15 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/evoila/BPM-Client/helpers"
 	"gopkg.in/yaml.v2"
 )
 
-func ZipPackage(packageName string) {
+func ZipPackage(packageName, depth string) {
+
+	log.Println(depth + "├─ Packing: " + packageName)
 
 	specFile := readSpec("./packages/" + packageName)
 
@@ -26,6 +29,16 @@ func ZipPackage(packageName string) {
 	filesToZip = helpers.Merge(filesToZip, scanFolderAndFilter(specFile.Files, "./src/"))
 
 	zipMe(filesToZip, "./"+packageName+".zip")
+
+	for _, dependancy := range specFile.Dependencies {
+		if _, err := os.Stat("./" + dependancy + ".zip"); os.IsNotExist(err) {
+			log.Print(depth + "├─ Handling dependancy")
+
+			ZipPackage(dependancy, "|	"+depth)
+		}
+	}
+
+	log.Println(depth + "└─ Finished packing: " + packageName)
 }
 
 func scanPackageFolder(packageName string) ([]string, error) {
@@ -58,7 +71,8 @@ func scanFolderAndFilter(files []string, folder string) []string {
 				}
 				matches = helpers.Merge(matches, content)
 			} else {
-				matches = append(matches, match)
+				normalized := strings.TrimPrefix(match, "./")
+				matches = append(matches, normalized)
 			}
 		}
 	}
@@ -120,7 +134,6 @@ func zipMe(filepaths []string, target string) error {
 		}
 	}
 	return nil
-
 }
 
 func addFileToZip(filename string, zipw *zip.Writer) error {
