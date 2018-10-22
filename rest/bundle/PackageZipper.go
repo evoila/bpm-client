@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/evoila/BPM-Client/helpers"
 	"gopkg.in/yaml.v2"
 )
 
@@ -21,10 +22,7 @@ func ZipPackage(packageName string) {
 		panic(err)
 	}
 
-	for _, file := range specFile.Files {
-
-		filesToZip = append(filesToZip, "blobs/"+file)
-	}
+	filesToZip = helpers.Merge(filesToZip, scanBlobFolderAndFilter(specFile.Files))
 
 	zipMe(filesToZip, "./"+packageName+".zip")
 }
@@ -32,6 +30,33 @@ func ZipPackage(packageName string) {
 func scanPackageFolder(packageName string) ([]string, error) {
 
 	return listFiles("./packages/" + packageName)
+}
+
+func scanBlobFolderAndFilter(files []string) []string {
+
+	var matches []string
+
+	for _, file := range files {
+		curMatches, err := filepath.Glob("./blobs/" + file)
+
+		if err != nil {
+			panic(err)
+		}
+
+		for _, match := range curMatches {
+
+			info, err := os.Stat(match)
+			if err != nil {
+				panic(err)
+			}
+
+			if !info.IsDir() {
+				matches = append(matches, match)
+			}
+		}
+	}
+
+	return matches
 }
 
 func readSpec(specLocation string) SpecFile {
@@ -67,11 +92,6 @@ func listFiles(root string) ([]string, error) {
 		return nil, err
 	}
 	return files, nil
-}
-
-type SpecFile struct {
-	Name                string
-	Files, Dependencies []string
 }
 
 func zipMe(filepaths []string, target string) error {
@@ -115,4 +135,9 @@ func addFileToZip(filename string, zipw *zip.Writer) error {
 	}
 
 	return nil
+}
+
+type SpecFile struct {
+	Name                string
+	Files, Dependencies []string
 }
