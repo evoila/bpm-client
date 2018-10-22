@@ -11,10 +11,11 @@ import (
 	"strings"
 
 	"github.com/evoila/BPM-Client/helpers"
+	"github.com/evoila/BPM-Client/model"
 	"gopkg.in/yaml.v2"
 )
 
-func ZipPackage(packageName, depth string) {
+func ZipPackage(packageName, version, vendor, depth string) []model.MetaData {
 
 	log.Println(depth + "├─ Packing: " + packageName)
 
@@ -25,20 +26,32 @@ func ZipPackage(packageName, depth string) {
 		panic(err)
 	}
 
-	filesToZip = helpers.Merge(filesToZip, scanFolderAndFilter(specFile.Files, "./blobs/"))
-	filesToZip = helpers.Merge(filesToZip, scanFolderAndFilter(specFile.Files, "./src/"))
+	filesToZip = helpers.MergeStringList(filesToZip, scanFolderAndFilter(specFile.Files, "./blobs/"))
+	filesToZip = helpers.MergeStringList(filesToZip, scanFolderAndFilter(specFile.Files, "./src/"))
 
-	zipMe(filesToZip, "./"+packageName+".zip")
+	pack := "./" + packageName + ".zip"
+
+	zipMe(filesToZip, pack)
+
+	result := []model.MetaData{
+		model.MetaData{
+			Name:         packageName,
+			Version:      version,
+			Vendor:       vendor,
+			FilePath:     pack,
+			Files:        specFile.Files,
+			Dependencies: specFile.Dependencies}}
 
 	for _, dependancy := range specFile.Dependencies {
 		if _, err := os.Stat("./" + dependancy + ".zip"); os.IsNotExist(err) {
-			log.Print(depth + "├─ Handling dependancy")
+			log.Println(depth + "├─ Handling dependancy")
 
-			ZipPackage(dependancy, "|	"+depth)
+			result = helpers.MergeMetaDataList(result, ZipPackage(dependancy, version, vendor, "|	"+depth))
 		}
 	}
 
 	log.Println(depth + "└─ Finished packing: " + packageName)
+	return result
 }
 
 func scanPackageFolder(packageName string) ([]string, error) {
@@ -69,7 +82,7 @@ func scanFolderAndFilter(files []string, folder string) []string {
 				if err != nil {
 					panic(err)
 				}
-				matches = helpers.Merge(matches, content)
+				matches = helpers.MergeStringList(matches, content)
 			} else {
 				normalized := strings.TrimPrefix(match, "./")
 				matches = append(matches, normalized)
@@ -80,19 +93,19 @@ func scanFolderAndFilter(files []string, folder string) []string {
 	return matches
 }
 
-func readSpec(specLocation string) SpecFile {
+func readSpec(specLocation string) model.SpecFile {
 
 	yamlFile, err := ioutil.ReadFile(specLocation + "/spec")
 	if err != nil {
 		panic(err)
 	}
 
-	var specFile SpecFile
+	var specFile model.SpecFile
 
 	err = yaml.Unmarshal(yamlFile, &specFile)
 
 	if err != nil {
-		log.Fatalf("Unmarshal: %v", err)
+		panic(err)
 	}
 
 	return specFile
@@ -155,9 +168,4 @@ func addFileToZip(filename string, zipw *zip.Writer) error {
 	}
 
 	return nil
-}
-
-type SpecFile struct {
-	Name                string
-	Files, Dependencies []string
 }

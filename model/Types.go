@@ -14,3 +14,13 @@ type BoshPackage struct {
 type BoshBlob struct {
 	Id, Name, Version string
 }
+
+type MetaData struct {
+	Name, Version, Vendor, FilePath string
+	Files, Dependencies             []string
+}
+
+type SpecFile struct {
+	Name                string
+	Files, Dependencies []string
+}
