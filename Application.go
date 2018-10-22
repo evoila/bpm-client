@@ -22,5 +22,5 @@ func moveToReleaseDir() {
 	os.Chdir(dir)
 }
 
-const packageName = "openjdk"
+const packageName = "kafka-smoke-test"
 const url = "http://localhost:8080"

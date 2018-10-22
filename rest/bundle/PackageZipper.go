@@ -22,7 +22,8 @@ func ZipPackage(packageName string) {
 		panic(err)
 	}
 
-	filesToZip = helpers.Merge(filesToZip, scanBlobFolderAndFilter(specFile.Files))
+	filesToZip = helpers.Merge(filesToZip, scanFolderAndFilter(specFile.Files, "./blobs/"))
+	filesToZip = helpers.Merge(filesToZip, scanFolderAndFilter(specFile.Files, "./src/"))
 
 	zipMe(filesToZip, "./"+packageName+".zip")
 }
@@ -32,12 +33,12 @@ func scanPackageFolder(packageName string) ([]string, error) {
 	return listFiles("./packages/" + packageName)
 }
 
-func scanBlobFolderAndFilter(files []string) []string {
+func scanFolderAndFilter(files []string, folder string) []string {
 
 	var matches []string
 
 	for _, file := range files {
-		curMatches, err := filepath.Glob("./blobs/" + file)
+		curMatches, err := filepath.Glob(folder + file)
 
 		if err != nil {
 			panic(err)
@@ -50,7 +51,13 @@ func scanBlobFolderAndFilter(files []string) []string {
 				panic(err)
 			}
 
-			if !info.IsDir() {
+			if info.IsDir() {
+				content, err := listFiles(match)
+				if err != nil {
+					panic(err)
+				}
+				matches = helpers.Merge(matches, content)
+			} else {
 				matches = append(matches, match)
 			}
 		}
