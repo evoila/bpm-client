@@ -130,8 +130,9 @@ func listFiles(root string) ([]string, error) {
 
 func zipMe(filepaths []string, target string) error {
 
-	flags := os.O_WRONLY | os.O_CREATE | os.O_TRUNC
-	file, err := os.OpenFile(target, flags, 0644)
+	//flags := os.O_WRONLY | os.O_CREATE | os.O_TRUNC
+
+	file, err := os.Create(target)
 
 	if err != nil {
 		return fmt.Errorf("Failed to open zip for writing: %s", err)
