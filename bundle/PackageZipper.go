@@ -35,12 +35,11 @@ func ZipPackage(packageName, version, vendor, depth string) []model.MetaData {
 
 	result := []model.MetaData{
 		model.MetaData{
-			Name:         packageName,
-			Version:      version,
-			Vendor:       vendor,
-			FilePath:     pack,
-			Files:        specFile.Files,
-			Dependencies: specFile.Dependencies}}
+			Name:     packageName,
+			Version:  version,
+			Vendor:   vendor,
+			FilePath: pack,
+			Files:    specFile.Files}}
 
 	for _, dependancy := range specFile.Dependencies {
 		if _, err := os.Stat("./" + dependancy + ".zip"); os.IsNotExist(err) {
@@ -129,8 +128,6 @@ func listFiles(root string) ([]string, error) {
 }
 
 func zipMe(filepaths []string, target string) error {
-
-	//flags := os.O_WRONLY | os.O_CREATE | os.O_TRUNC
 
 	file, err := os.Create(target)
 
