@@ -10,10 +10,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/evoila/BPM-Client/model"
+	. "github.com/evoila/BPM-Client/model"
 )
 
-func UploadFile(filename, path string, body model.Destination) error {
+func UploadFile(path string, body UploadPermission) error {
 
 	log.Println("Opening file at", path)
 	file, err := os.Open(path)
@@ -50,18 +50,18 @@ func UploadFile(filename, path string, body model.Destination) error {
 	listObjectsOfBucket(body.Bucket, client)
 
 	// -- Uploading the backup file to the given bucket --
-	log.Println("Uploading", filename, "to", body.Bucket)
+	log.Println("Uploading", body.S3location, "to", body.Bucket)
 
 	_, err = uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(body.Bucket),
-		Key:    aws.String(filename),
+		Key:    aws.String(body.S3location),
 		Body:   file,
 	})
 
 	if err != nil {
 		return errors.New("Failed to upload to S3 due to '" + err.Error() + "'")
 	}
-	log.Printf("Successfully uploaded %q to %q\n", filename, body.Bucket)
+	log.Printf("Successfully uploaded %q to %q\n", body.S3location, body.Bucket)
 
 	listObjectsOfBucket(body.Bucket, client)
 
@@ -83,27 +83,7 @@ func listObjectsOfBucket(bucket string, client *s3.S3) error {
 		fmt.Println("Size:         ", *item.Size)
 		fmt.Println("Storage class:", *item.StorageClass)
 		fmt.Println("")
-
 	}
 
-	return nil
-}
-
-func listAllBuckets(client *s3.S3) error {
-	// -- Listing all buckets --
-	// Could be removed later on
-
-	log.Println("Sending request for the bucket list.")
-	result, err := client.ListBuckets(nil)
-	if err != nil {
-		return errors.New("Unable to list buckets due to '" + err.Error() + "'")
-	}
-	log.Println("Listing all buckets.")
-	fmt.Println("Buckets:")
-
-	for _, b := range result.Buckets {
-		fmt.Printf("* %s created on %s\n",
-			aws.StringValue(b.Name), aws.TimeValue(b.CreationDate))
-	}
 	return nil
 }

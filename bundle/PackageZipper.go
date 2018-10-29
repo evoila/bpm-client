@@ -6,16 +6,16 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"os"
-	"path/filepath"
+	. "os"
+	. "path/filepath"
 	"strings"
 
 	"github.com/evoila/BPM-Client/helpers"
-	"github.com/evoila/BPM-Client/model"
-	"gopkg.in/yaml.v2"
+	. "github.com/evoila/BPM-Client/model"
+	. "gopkg.in/yaml.v2"
 )
 
-func ZipPackage(packageName, version, vendor, depth string) []model.MetaData {
+func ZipPackage(packageName, version, vendor, depth string) []MetaData {
 
 	log.Println(depth + "├─ Packing: " + packageName)
 
@@ -33,19 +33,19 @@ func ZipPackage(packageName, version, vendor, depth string) []model.MetaData {
 
 	zipMe(filesToZip, pack)
 
-	result := []model.MetaData{
-		model.MetaData{
+	result := []MetaData{
+		{
 			Name:     packageName,
 			Version:  version,
 			Vendor:   vendor,
 			FilePath: pack,
 			Files:    specFile.Files}}
 
-	for _, dependancy := range specFile.Dependencies {
-		if _, err := os.Stat("./" + dependancy + ".bpm"); os.IsNotExist(err) {
-			log.Println(depth + "├─ Handling dependancy")
+	for _, dependency := range specFile.Dependencies {
+		if _, err := Stat("./" + dependency + ".bpm"); IsNotExist(err) {
+			log.Println(depth + "├─ Handling dependency")
 
-			result = helpers.MergeMetaDataList(result, ZipPackage(dependancy, version, vendor, "|	"+depth))
+			result = helpers.MergeMetaDataList(result, ZipPackage(dependency, version, vendor, "|	"+depth))
 		}
 	}
 
@@ -63,7 +63,7 @@ func scanFolderAndFilter(files []string, folder string) []string {
 	var matches []string
 
 	for _, file := range files {
-		curMatches, err := filepath.Glob(folder + file)
+		curMatches, err := Glob(folder + file)
 
 		if err != nil {
 			panic(err)
@@ -71,7 +71,7 @@ func scanFolderAndFilter(files []string, folder string) []string {
 
 		for _, match := range curMatches {
 
-			info, err := os.Stat(match)
+			info, err := Stat(match)
 			if err != nil {
 				panic(err)
 			}
@@ -92,16 +92,16 @@ func scanFolderAndFilter(files []string, folder string) []string {
 	return matches
 }
 
-func readSpec(specLocation string) model.SpecFile {
+func readSpec(specLocation string) SpecFile {
 
 	yamlFile, err := ioutil.ReadFile(specLocation + "/spec")
 	if err != nil {
 		panic(err)
 	}
 
-	var specFile model.SpecFile
+	var specFile SpecFile
 
-	err = yaml.Unmarshal(yamlFile, &specFile)
+	err = Unmarshal(yamlFile, &specFile)
 
 	if err != nil {
 		panic(err)
@@ -113,7 +113,7 @@ func readSpec(specLocation string) model.SpecFile {
 func listFiles(root string) ([]string, error) {
 	var files []string
 
-	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+	err := Walk(root, func(path string, info FileInfo, err error) error {
 
 		if !info.IsDir() {
 			files = append(files, path)
@@ -127,42 +127,42 @@ func listFiles(root string) ([]string, error) {
 	return files, nil
 }
 
-func zipMe(filepaths []string, target string) error {
+func zipMe(filePath []string, target string) error {
 
-	file, err := os.Create(target)
+	file, err := Create(target)
 
 	if err != nil {
-		return fmt.Errorf("Failed to open zip for writing: %s", err)
+		return fmt.Errorf("failed to open zip for writing: %s", err)
 	}
 	defer file.Close()
 
-	zipw := zip.NewWriter(file)
-	defer zipw.Close()
+	zipWriter := zip.NewWriter(file)
+	defer zipWriter.Close()
 
-	for _, filename := range filepaths {
-		if err := addFileToZip(filename, zipw); err != nil {
-			return fmt.Errorf("Failed to add file %s to zip: %s", filename, err)
+	for _, filename := range filePath {
+		if err := addFileToZip(filename, zipWriter); err != nil {
+			return fmt.Errorf("failed to add file %s to zip: %s", filename, err)
 		}
 	}
 	return nil
 }
 
 func addFileToZip(filename string, zipw *zip.Writer) error {
-	file, err := os.Open(filename)
+	file, err := Open(filename)
 
 	if err != nil {
-		return fmt.Errorf("Error opening file %s: %s", filename, err)
+		return fmt.Errorf("error opening file %s: %s", filename, err)
 	}
 	defer file.Close()
 
 	wr, err := zipw.Create(filename)
 	if err != nil {
 
-		return fmt.Errorf("Error adding file; '%s' to zip : %s", filename, err)
+		return fmt.Errorf("error adding file; '%s' to zip : %s", filename, err)
 	}
 
 	if _, err := io.Copy(wr, file); err != nil {
-		return fmt.Errorf("Error writing %s to zip: %s", filename, err)
+		return fmt.Errorf("error writing %s to zip: %s", filename, err)
 	}
 
 	return nil
