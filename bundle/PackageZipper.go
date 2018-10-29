@@ -29,7 +29,7 @@ func ZipPackage(packageName, version, vendor, depth string) []model.MetaData {
 	filesToZip = helpers.MergeStringList(filesToZip, scanFolderAndFilter(specFile.Files, "./blobs/"))
 	filesToZip = helpers.MergeStringList(filesToZip, scanFolderAndFilter(specFile.Files, "./src/"))
 
-	pack := "./" + packageName + ".zip"
+	pack := "./" + packageName + ".bpm"
 
 	zipMe(filesToZip, pack)
 
@@ -42,7 +42,7 @@ func ZipPackage(packageName, version, vendor, depth string) []model.MetaData {
 			Files:    specFile.Files}}
 
 	for _, dependancy := range specFile.Dependencies {
-		if _, err := os.Stat("./" + dependancy + ".zip"); os.IsNotExist(err) {
+		if _, err := os.Stat("./" + dependancy + ".bpm"); os.IsNotExist(err) {
 			log.Println(depth + "├─ Handling dependancy")
 
 			result = helpers.MergeMetaDataList(result, ZipPackage(dependancy, version, vendor, "|	"+depth))
