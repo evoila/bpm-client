@@ -1,18 +1,11 @@
 package model
 
-type ResponseBoshPackage struct {
-	Id, Name, Spec, Packaging, Version string
-	Blobs, Dependencies                []string
-}
-
-type BoshPackage struct {
-	id, name, spec, packaging, version string
-	blobs                              []BoshBlob
-	dependencies                       []BoshPackage
-}
-
-type BoshBlob struct {
-	Id, Name, Version string
+type ResponseBody struct {
+	Name       string   `json:"name"`
+	Version    string   `json:"version"`
+	Vendor     string   `json:"vendor"`
+	S3location string   `json:"s3location"`
+	Files      []string `json:"files"`
 }
 
 type MetaData struct {
@@ -38,19 +31,10 @@ type ErrorResponse struct {
 	ErrorMessage string `json:"error message"`
 }
 
-type Destination struct {
-	Type       string
-	Bucket     string
-	Region     string
-	AuthKey    string
-	AuthSecret string
-	File       string
-}
-
-type DbInformation struct {
-	Host       string
-	User       string
-	Password   string
-	Database   string
-	Parameters []map[string]interface{}
+type UploadPermission struct {
+	Bucket     string `json:"bucket"`
+	Region     string `json:"region"`
+	AuthKey    string `json:"auth-key"`
+	AuthSecret string `json:"auth-secret"`
+	S3location string `json:"s3location"`
 }
