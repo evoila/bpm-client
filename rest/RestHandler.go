@@ -11,7 +11,7 @@ import (
 	. "github.com/evoila/BPM-Client/model"
 )
 
-func PutMetaData(data MetaData) UploadPermission {
+func PutMetaData(data MetaData) S3Permission {
 
 	client := &Client{}
 
@@ -35,13 +35,13 @@ func PutMetaData(data MetaData) UploadPermission {
 		log.Fatal(err)
 	}
 
-	var converted UploadPermission
+	var converted S3Permission
 	err = Unmarshal(responseBody, &converted)
 
 	return converted
 }
 
-func GetMetaData(request packageRequestBody) ResponseBody {
+func GetDownloadPermission(request PackageRequestBody) S3Permission {
 
 	resp, err := Get(BuildPath([]string{url, request.Vendor, request.Name, request.Version}))
 
@@ -55,20 +55,14 @@ func GetMetaData(request packageRequestBody) ResponseBody {
 
 	responseBody, _ := ioutil.ReadAll(resp.Body)
 
-	var responsePackage ResponseBody
-	err = Unmarshal(responseBody, &responsePackage)
+	var permission S3Permission
+	err = Unmarshal(responseBody, &permission)
 
 	if err != nil {
 		panic(err)
 	}
 
-	return responsePackage
-}
-
-type packageRequestBody struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
-	Vendor  string `json:"vendor"`
+	return permission
 }
 
 func buildBody(data MetaData) ([]byte, error) {

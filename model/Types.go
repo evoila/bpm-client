@@ -31,10 +31,16 @@ type ErrorResponse struct {
 	ErrorMessage string `json:"error message"`
 }
 
-type UploadPermission struct {
+type S3Permission struct {
 	Bucket     string `json:"bucket"`
 	Region     string `json:"region"`
 	AuthKey    string `json:"auth-key"`
 	AuthSecret string `json:"auth-secret"`
 	S3location string `json:"s3location"`
+}
+
+type PackageRequestBody struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+	Vendor  string `json:"vendor"`
 }

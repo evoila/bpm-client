@@ -13,7 +13,7 @@ import (
 	. "github.com/evoila/BPM-Client/model"
 )
 
-func UploadFile(path string, body UploadPermission) error {
+func UploadFile(path string, body S3Permission) error {
 
 	log.Println("Opening file at", path)
 	file, err := os.Open(path)
@@ -64,6 +64,52 @@ func UploadFile(path string, body UploadPermission) error {
 	log.Printf("Successfully uploaded %q to %q\n", body.S3location, body.Bucket)
 
 	listObjectsOfBucket(body.Bucket, client)
+
+	return nil
+}
+
+func DownloadFile(filename string, body S3Permission) error {
+
+	log.Println("Creating file at", filename+".bpm")
+	file, err := os.Create(filename + ".bpm")
+	if err != nil {
+		return errors.New("Failed to create file " + filename + "due to '" + err.Error() + "'")
+	}
+	defer file.Close()
+
+	// -- Creating downloadSession, service client and uploader --
+	os.Setenv("AWS_ACCESS_KEY_ID", body.AuthKey)
+	os.Setenv("AWS_SECRET_ACCESS_KEY", body.AuthSecret)
+
+	//Clear credentials after use
+	defer os.Setenv("AWS_ACCESS_KEY_ID", "")
+	defer os.Setenv("AWS_SECRET_ACCESS_KEY", "")
+
+	log.Println("Creating S3 downloadSession ...")
+	downloadSession, err := session.NewSession(&aws.Config{
+		Region: aws.String(body.Region)},
+	)
+
+	if err != nil {
+		return errors.New("Unable to create a S3 downloadSession due to '" + err.Error() + "'")
+	}
+
+	log.Println("Successfully created S3 downloadSession")
+
+	log.Println("Setting up S3 downloader")
+	var downloader = s3manager.NewDownloader(downloadSession)
+	//var client = s3.New(downloadSession)
+
+	numBytes, err := downloader.Download(file,
+		&s3.GetObjectInput{
+			Bucket: aws.String(body.Bucket),
+			Key:    aws.String(body.S3location),
+		})
+	if err != nil {
+		return errors.New("Failed to download the file " + filename + "  due to '" + err.Error() + "'")
+	}
+
+	log.Println("Successfully downloaded", file.Name(), "(", numBytes, "bytes )")
 
 	return nil
 }
