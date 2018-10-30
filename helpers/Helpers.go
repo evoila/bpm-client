@@ -4,6 +4,7 @@ import (
 	. "github.com/evoila/BPM-Client/model"
 	. "gopkg.in/yaml.v2"
 	"io/ioutil"
+	"os"
 	"strings"
 )
 
@@ -51,8 +52,33 @@ func ReadSpec(specLocation string) SpecFile {
 	return specFile
 }
 
+func ReadConfig(configLocation string) Config {
+
+	yamlFile, err := ioutil.ReadFile(configLocation)
+	if err != nil {
+		panic(err)
+	}
+
+	var config Config
+
+	err = Unmarshal(yamlFile, &config)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return config
+}
 
 func BuildPath(path []string) string {
 
 	return strings.Join(path, "/")
+}
+
+func MoveToReleaseDir() {
+	dir, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	os.Chdir(dir)
 }

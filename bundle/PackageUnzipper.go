@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 )
 
-func UnzipPackage(src, dest string) error {
+func UnzipPackage(src, destination string) error {
 	r, err := zip.OpenReader(src)
 	if err != nil {
 		panic(err)
@@ -19,7 +19,7 @@ func UnzipPackage(src, dest string) error {
 		}
 	}()
 
-	os.Mkdir(dest, 0755)
+	os.Mkdir(destination, 0755)
 
 	// Closure to address file descriptors issue with all the deferred .Close() methods
 	extractAndWriteFile := func(f *zip.File) error {
@@ -33,7 +33,7 @@ func UnzipPackage(src, dest string) error {
 			}
 		}()
 
-		path := filepath.Join(dest, f.Name)
+		path := filepath.Join(destination, f.Name)
 
 		if f.FileInfo().IsDir() {
 			os.MkdirAll(path, 0755)
@@ -41,8 +41,6 @@ func UnzipPackage(src, dest string) error {
 
 			dir := filepath.Dir(path)
 			os.MkdirAll(dir, 0755)
-
-			fmt.Println(f.Name)
 
 			file, err := os.Create(path)
 
@@ -71,5 +69,6 @@ func UnzipPackage(src, dest string) error {
 		}
 	}
 
+	fmt.Println("Finished Unzipping " + src)
 	return nil
 }

@@ -39,6 +39,10 @@ type S3Permission struct {
 	S3location string `json:"s3location"`
 }
 
+type Config struct {
+	Url, Port, Vendor string
+}
+
 type PackageRequestBody struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`

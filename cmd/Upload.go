@@ -1,4 +1,4 @@
-package execute
+package cmd
 
 import (
 	. "github.com/evoila/BPM-Client/bundle"
@@ -7,12 +7,12 @@ import (
 	"os"
 )
 
-func Upload(packageName, vendor, version string) {
+func Upload(url string, packageName, vendor, version string) {
 
 	result := ZipPackage(packageName, version, vendor, "")
 
 	for _, r := range result {
-		response := rest.PutMetaData(r)
+		response := rest.PutMetaData(url, r)
 
 		err := s3.UploadFile(r.FilePath, response)
 		if err != nil {
