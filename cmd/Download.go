@@ -1,4 +1,4 @@
-package execute
+package cmd
 
 import (
 	. "github.com/evoila/BPM-Client/bundle"
@@ -10,9 +10,9 @@ import (
 	"os"
 )
 
-func Download(requestBody PackageRequestBody) {
+func Download(url string, requestBody PackageRequestBody) {
 
-	var permission = rest.GetDownloadPermission(requestBody)
+	var permission = rest.GetDownloadPermission(url, requestBody)
 
 	s3.DownloadFile(requestBody.Name, permission)
 
@@ -36,7 +36,7 @@ func Download(requestBody PackageRequestBody) {
 		_, err := os.Stat(BuildPath([]string{"packages", dependency}))
 
 		if os.IsNotExist(err) {
-			meta, err := findDependency(dependency)
+			meta, err := findDependency(url, dependency)
 
 			if err != nil {
 				panic(err)
@@ -47,13 +47,13 @@ func Download(requestBody PackageRequestBody) {
 				Version: meta.Version,
 				Vendor:  meta.Vendor}
 
-			Download(dependencyRequest)
+			Download(url, dependencyRequest)
 		}
 	}
 }
 
-func findDependency(dependency string) (*MetaData, error) {
-	var possibilities = rest.GetMetaDataForPackageName(dependency)
+func findDependency(url string, dependency string) (*MetaData, error) {
+	var possibilities = rest.GetMetaDataForPackageName(url, dependency)
 
 	for _, metaData := range possibilities {
 		if metaData.Name == dependency {
