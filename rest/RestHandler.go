@@ -4,6 +4,7 @@ import (
 	. "bytes"
 	. "encoding/json"
 	"fmt"
+	. "github.com/evoila/BPM-Client/helpers"
 	"io/ioutil"
 	"log"
 	. "net/http"
@@ -20,7 +21,7 @@ func PutMetaData(data MetaData) S3Permission {
 	if err != nil {
 		panic(err)
 	}
-	request, err := NewRequest("PUT", url+"upload/package", NewBuffer(body))
+	request, err := NewRequest("PUT", BuildPath([]string{url + "upload/package"}), NewBuffer(body))
 	request.Header.Set("Content-Type", "application/json")
 
 	response, err := client.Do(request)
@@ -39,6 +40,30 @@ func PutMetaData(data MetaData) S3Permission {
 	err = Unmarshal(responseBody, &converted)
 
 	return converted
+}
+
+func GetMetaDataForPackageName(name string) []MetaData {
+
+	path := BuildPath([]string{url, "package?name=" + name})
+
+	response, err := Get(path)
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer response.Body.Close()
+
+	responseBody, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var metaData []MetaData
+
+	err = Unmarshal(responseBody, &metaData)
+
+	return metaData
 }
 
 func GetDownloadPermission(request PackageRequestBody) S3Permission {
@@ -83,4 +108,4 @@ type requestBody struct {
 	Files   []string `json:"files"`
 }
 
-const url = "http://localhost:8080/"
+const url = "http://localhost:8080"

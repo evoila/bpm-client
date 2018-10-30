@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	. "os"
 	. "path/filepath"
@@ -12,14 +11,13 @@ import (
 
 	"github.com/evoila/BPM-Client/helpers"
 	. "github.com/evoila/BPM-Client/model"
-	. "gopkg.in/yaml.v2"
 )
 
 func ZipPackage(packageName, version, vendor, depth string) []MetaData {
 
 	log.Println(depth + "├─ Packing: " + packageName)
 
-	specFile := readSpec("./packages/" + packageName)
+	specFile := helpers.ReadSpec("./packages/" + packageName)
 
 	filesToZip, err := scanPackageFolder(packageName)
 	if err != nil {
@@ -90,24 +88,6 @@ func scanFolderAndFilter(files []string, folder string) []string {
 	}
 
 	return matches
-}
-
-func readSpec(specLocation string) SpecFile {
-
-	yamlFile, err := ioutil.ReadFile(specLocation + "/spec")
-	if err != nil {
-		panic(err)
-	}
-
-	var specFile SpecFile
-
-	err = Unmarshal(yamlFile, &specFile)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return specFile
 }
 
 func listFiles(root string) ([]string, error) {
