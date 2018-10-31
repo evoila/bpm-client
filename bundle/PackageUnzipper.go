@@ -21,7 +21,6 @@ func UnzipPackage(src, destination string) error {
 
 	os.Mkdir(destination, 0755)
 
-	// Closure to address file descriptors issue with all the deferred .Close() methods
 	extractAndWriteFile := func(f *zip.File) error {
 		rc, err := f.Open()
 		if err != nil {

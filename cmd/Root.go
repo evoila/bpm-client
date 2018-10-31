@@ -30,13 +30,11 @@ func init() {
 
 			helpers.MoveToReleaseDir()
 
-			Upload(endpoint, pack, config.Vendor, version)
+			Upload(endpoint, pack, config.Vendor)
 		},
 	}
 	uploadCmd.Flags().StringVarP(&pack, "package", "p", "", "The name of the package to upload")
 	uploadCmd.MarkFlagRequired("package")
-	uploadCmd.Flags().StringVarP(&version, "version", "v", "", "Version of the package to upload")
-	uploadCmd.MarkFlagRequired("version")
 
 	rootCmd.AddCommand(uploadCmd)
 
@@ -65,6 +63,7 @@ func init() {
 	rootCmd.AddCommand(downloadCmd)
 
 }
+
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

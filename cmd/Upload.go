@@ -7,19 +7,22 @@ import (
 	"os"
 )
 
-func Upload(url string, packageName, vendor, version string) {
+func Upload(url, packageName, vendor string) {
 
-	result := ZipPackage(packageName, version, vendor, "")
+	result := ZipPackage(packageName, vendor, "")
 
 	for _, r := range result {
-		response := rest.PutMetaData(url, r)
 
-		err := s3.UploadFile(r.FilePath, response)
-		if err != nil {
-			panic(err)
+		var response = rest.PutMetaData(url, r, false)
+
+		if response != nil {
+			err := s3.UploadFile(r.FilePath, *response)
+			if err != nil {
+				panic(err)
+			}
 		}
 
-		err = os.Remove(r.FilePath)
+		err := os.Remove(r.FilePath)
 		if err != nil {
 			panic(err)
 		}

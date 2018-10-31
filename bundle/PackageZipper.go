@@ -13,7 +13,7 @@ import (
 	. "github.com/evoila/BPM-Client/model"
 )
 
-func ZipPackage(packageName, version, vendor, depth string) []MetaData {
+func ZipPackage(packageName, vendor, depth string) []MetaData {
 
 	log.Println(depth + "├─ Packing: " + packageName)
 
@@ -33,17 +33,19 @@ func ZipPackage(packageName, version, vendor, depth string) []MetaData {
 
 	result := []MetaData{
 		{
-			Name:     packageName,
-			Version:  version,
-			Vendor:   vendor,
-			FilePath: pack,
-			Files:    specFile.Files}}
+			Name:         packageName,
+			Version:      specFile.Version,
+			Vendor:       vendor,
+			FilePath:     pack,
+			Files:        specFile.Files,
+			Dependencies: specFile.Dependencies},
+	}
 
 	for _, dependency := range specFile.Dependencies {
 		if _, err := Stat("./" + dependency + ".bpm"); IsNotExist(err) {
 			log.Println(depth + "├─ Handling dependency")
 
-			result = helpers.MergeMetaDataList(result, ZipPackage(dependency, version, vendor, "|	"+depth))
+			result = helpers.MergeMetaDataList(result, ZipPackage(dependency, vendor, "|	"+depth))
 		}
 	}
 

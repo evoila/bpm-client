@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"bufio"
 	. "bytes"
 	. "encoding/json"
 	"fmt"
@@ -8,11 +9,14 @@ import (
 	"io/ioutil"
 	"log"
 	. "net/http"
+	"os"
+	"strconv"
+	"strings"
 
 	. "github.com/evoila/BPM-Client/model"
 )
 
-func PutMetaData(url string, data MetaData) S3Permission {
+func PutMetaData(url string, data MetaData, force bool) *S3Permission {
 
 	client := &Client{}
 
@@ -21,7 +25,8 @@ func PutMetaData(url string, data MetaData) S3Permission {
 	if err != nil {
 		panic(err)
 	}
-	request, err := NewRequest("PUT", BuildPath([]string{url, "upload/package"}), NewBuffer(body))
+
+	request, err := NewRequest("PUT", BuildPath([]string{url, "upload/package?force=" + strconv.FormatBool(force)}), NewBuffer(body))
 	request.Header.Set("Content-Type", "application/json")
 
 	response, err := client.Do(request)
@@ -31,15 +36,69 @@ func PutMetaData(url string, data MetaData) S3Permission {
 
 	defer response.Body.Close()
 
-	responseBody, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		log.Fatal(err)
+	if response.StatusCode == 202 {
+
+		responseBody, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var converted S3Permission
+		err = Unmarshal(responseBody, &converted)
+
+		return &converted
+
+	} else if response.StatusCode == 409 {
+
+		responseBody, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var metaData []MetaData
+		err = Unmarshal(responseBody, &metaData)
+
+		fmt.Println("At least one package named " + data.Name + " already exists:")
+
+		if askOperatorForProcedure(metaData) {
+			return PutMetaData(url, data, true)
+		}
 	}
 
-	var converted S3Permission
-	err = Unmarshal(responseBody, &converted)
+	return nil
+}
 
-	return converted
+func askOperatorForProcedure(data []MetaData) bool {
+
+	for _, d := range data {
+		fmt.Println(d.String())
+	}
+
+	scanner := bufio.NewScanner(os.Stdin)
+	var text string
+
+	for !acceptInput(text) {
+		fmt.Print("Do you want to upload your own package anyway? ")
+		scanner.Scan()
+		text = scanner.Text()
+	}
+
+	return strings.ToLower(text) == "yes" || strings.ToLower(text) == "y"
+}
+
+func acceptInput(text string) bool {
+
+	var acceptedAnswers = []string{"yes", "y", "no", "n"}
+
+	for _, s := range acceptedAnswers {
+
+		if strings.ToLower(text) == s {
+			return true
+		}
+	}
+
+	fmt.Println("Please enter yes / y or no / No")
+	return false
 }
 
 func GetMetaDataForPackageName(url, name string) []MetaData {
@@ -102,8 +161,9 @@ func buildBody(data MetaData) ([]byte, error) {
 }
 
 type requestBody struct {
-	Name    string   `json:"name"`
-	Version string   `json:"version"`
-	Vendor  string   `json:"vendor"`
-	Files   []string `json:"files"`
+	Name         string   `json:"name"`
+	Version      string   `json:"version"`
+	Vendor       string   `json:"vendor"`
+	Files        []string `json:"files"`
+	Dependencies []string `json:"dependencies"`
 }

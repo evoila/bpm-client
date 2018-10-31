@@ -1,5 +1,7 @@
 package model
 
+import "strings"
+
 type ResponseBody struct {
 	Name       string   `json:"name"`
 	Version    string   `json:"version"`
@@ -10,11 +12,20 @@ type ResponseBody struct {
 
 type MetaData struct {
 	Name, Version, Vendor, FilePath string
-	Files                           []string
+	Files, Dependencies             []string
+}
+
+func (m MetaData) String() string {
+
+	return "Name:         " + m.Name + "\n" +
+		"Version:      " + m.Version + "\n" +
+		"Vendor:       " + m.Vendor + "\n" +
+		"Files:        " + strings.Join(m.Files, "\n              ") + "\n" +
+		"Dependencies: " + strings.Join(m.Dependencies, "\n              ") + "\n"
 }
 
 type SpecFile struct {
-	Name                string
+	Name, Version       string
 	Files, Dependencies []string
 }
 
