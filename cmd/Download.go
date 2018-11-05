@@ -17,7 +17,12 @@ func Download(url, depth string, requestBody PackageRequestBody) {
 
 	var permission = rest.GetDownloadPermission(url, requestBody)
 
-	s3.DownloadFile(requestBody.Name, permission)
+	if permission == nil {
+		log.Println(depth + "└─  Package has not been found")
+		return
+	}
+
+	s3.DownloadFile(requestBody.Name, *permission)
 
 	var destination, err = os.Getwd()
 
