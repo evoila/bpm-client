@@ -18,7 +18,9 @@ var rootCmd = &cobra.Command{
 
 func init() {
 
-	var config = helpers.ReadConfig(defaultConfigLocation)
+	configLocation := os.Getenv("BOSH_PACKAGE_MANAGER_CONFIG")
+
+	var config = helpers.ReadConfig(configLocation)
 	var pack, version string
 
 	var uploadCmd = &cobra.Command{
@@ -30,7 +32,7 @@ func init() {
 
 			helpers.MoveToReleaseDir()
 
-			Upload(endpoint, pack, config.Vendor)
+			Upload(endpoint, pack, config.Vendor, "")
 		},
 	}
 	uploadCmd.Flags().StringVarP(&pack, "package", "p", "", "The name of the package to upload")
@@ -70,5 +72,3 @@ func Execute() {
 		os.Exit(1)
 	}
 }
-
-const defaultConfigLocation = "config.yml"

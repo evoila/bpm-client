@@ -14,7 +14,6 @@ import (
 
 func UploadFile(path string, body S3Permission) error {
 
-	log.Println("Upload File at", path)
 	file, err := os.Open(path)
 	if err != nil {
 		return errors.New("Failed to open file " + path + " due to '" + err.Error() + "'")
@@ -48,7 +47,6 @@ func UploadFile(path string, body S3Permission) error {
 	if err != nil {
 		return errors.New("Failed to upload to S3 due to '" + err.Error() + "'")
 	}
-	log.Printf("Successfully uploaded %q to %q\n", body.S3location, body.Bucket)
 
 	return nil
 }

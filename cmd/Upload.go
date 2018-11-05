@@ -2,29 +2,78 @@ package cmd
 
 import (
 	. "github.com/evoila/BPM-Client/bundle"
-	"github.com/evoila/BPM-Client/rest"
-	"github.com/evoila/BPM-Client/s3"
+	. "github.com/evoila/BPM-Client/collections"
+	. "github.com/evoila/BPM-Client/helpers"
+	. "github.com/evoila/BPM-Client/model"
+	. "github.com/evoila/BPM-Client/rest"
+	. "github.com/evoila/BPM-Client/s3"
+	"log"
 	"os"
 )
 
-func Upload(url, packageName, vendor string) {
+var set = NewStringSet()
 
-	result := ZipPackage(packageName, vendor, "")
+func Upload(url, packageName, vendor, depth string) {
 
-	for _, r := range result {
+	if set.Get(packageName) {
+		log.Println(depth + "├─  Dependency " + packageName + " already handeled.")
+		return
+	}
 
-		var response = rest.PutMetaData(url, r, false)
+	set.Add(packageName)
 
-		if response != nil {
-			err := s3.UploadFile(r.FilePath, *response)
-			if err != nil {
-				panic(err)
-			}
-		}
+	log.Println(depth + "├─ Packing: " + packageName)
 
-		err := os.Remove(r.FilePath)
+	specFile := ReadSpec("./packages/" + packageName)
+	pack := "./" + packageName + ".bpm"
+
+	result := MetaData{
+		Name:         packageName,
+		Version:      specFile.Version,
+		Vendor:       vendor,
+		FilePath:     pack,
+		Files:        specFile.Files,
+		Dependencies: specFile.Dependencies}
+
+	var response = PutMetaData(url, result, false)
+
+	if response != nil {
+
+		filesToZip, err := ScanPackageFolder(packageName)
 		if err != nil {
 			panic(err)
 		}
+
+		filesToZip = MergeStringList(filesToZip, ScanFolderAndFilter(specFile.Files, "./blobs/"))
+		filesToZip = MergeStringList(filesToZip, ScanFolderAndFilter(specFile.Files, "./src/"))
+
+		ZipMe(filesToZip, pack)
+
+		log.Println(depth + "├─ Upload Package")
+
+		err = UploadFile(result.FilePath, *response)
+		if err != nil {
+			panic(err)
+		}
+
+		log.Println(depth + "├─ Successfully uploaded")
+
+		err = os.Remove(result.FilePath)
+		if err != nil {
+			panic(err)
+		}
+
+		for _, dependency := range specFile.Dependencies {
+			if _, err := os.Stat("./" + dependency + ".bpm"); os.IsNotExist(err) {
+				log.Println(depth + "├─ Handling dependency")
+
+				Upload(url, dependency, vendor, "|	"+depth)
+			}
+		}
+
+	} else {
+		log.Println(depth + "Skipping " + packageName + ". Reusing present one.")
 	}
+
+	log.Println(depth + "└─ Finished packing: " + packageName)
 }

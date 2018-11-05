@@ -4,61 +4,21 @@ import (
 	"archive/zip"
 	"fmt"
 	"io"
-	"log"
 	. "os"
 	. "path/filepath"
 	"strings"
 
 	"github.com/evoila/BPM-Client/helpers"
-	. "github.com/evoila/BPM-Client/model"
 )
 
-func ZipPackage(packageName, vendor, depth string) []MetaData {
 
-	log.Println(depth + "├─ Packing: " + packageName)
 
-	specFile := helpers.ReadSpec("./packages/" + packageName)
-
-	filesToZip, err := scanPackageFolder(packageName)
-	if err != nil {
-		panic(err)
-	}
-
-	filesToZip = helpers.MergeStringList(filesToZip, scanFolderAndFilter(specFile.Files, "./blobs/"))
-	filesToZip = helpers.MergeStringList(filesToZip, scanFolderAndFilter(specFile.Files, "./src/"))
-
-	pack := "./" + packageName + ".bpm"
-
-	zipMe(filesToZip, pack)
-
-	result := []MetaData{
-		{
-			Name:         packageName,
-			Version:      specFile.Version,
-			Vendor:       vendor,
-			FilePath:     pack,
-			Files:        specFile.Files,
-			Dependencies: specFile.Dependencies},
-	}
-
-	for _, dependency := range specFile.Dependencies {
-		if _, err := Stat("./" + dependency + ".bpm"); IsNotExist(err) {
-			log.Println(depth + "├─ Handling dependency")
-
-			result = helpers.MergeMetaDataList(result, ZipPackage(dependency, vendor, "|	"+depth))
-		}
-	}
-
-	log.Println(depth + "└─ Finished packing: " + packageName)
-	return result
-}
-
-func scanPackageFolder(packageName string) ([]string, error) {
+func ScanPackageFolder(packageName string) ([]string, error) {
 
 	return listFiles("./packages/" + packageName)
 }
 
-func scanFolderAndFilter(files []string, folder string) []string {
+func ScanFolderAndFilter(files []string, folder string) []string {
 
 	var matches []string
 
@@ -109,7 +69,7 @@ func listFiles(root string) ([]string, error) {
 	return files, nil
 }
 
-func zipMe(filePath []string, target string) error {
+func ZipMe(filePath []string, target string) error {
 
 	file, err := Create(target)
 

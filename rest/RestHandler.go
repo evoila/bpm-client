@@ -152,10 +152,11 @@ func GetDownloadPermission(url string, request PackageRequestBody) S3Permission 
 func buildBody(data MetaData) ([]byte, error) {
 
 	requestBody := requestBody{
-		Name:    data.Name,
-		Version: data.Version,
-		Vendor:  data.Vendor,
-		Files:   data.Files}
+		Name:         data.Name,
+		Version:      data.Version,
+		Vendor:       data.Vendor,
+		Files:        data.Files,
+		Dependencies: data.Dependencies}
 
 	return Marshal(requestBody)
 }
