@@ -54,7 +54,7 @@ func init() {
 				Vendor:  config.Vendor,
 				Version: version}
 
-			Download(endpoint, requestBody)
+			Download(endpoint, "", requestBody)
 		},
 	}
 	downloadCmd.Flags().StringVarP(&pack, "package", "p", "", "The name of the package to upload")

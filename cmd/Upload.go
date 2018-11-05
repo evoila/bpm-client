@@ -16,7 +16,7 @@ var set = NewStringSet()
 func Upload(url, packageName, vendor, depth string) {
 
 	if set.Get(packageName) {
-		log.Println(depth + "├─  Dependency " + packageName + " already handeled.")
+		log.Println(depth + "├─  Dependency " + packageName + " already handled")
 		return
 	}
 
@@ -72,7 +72,7 @@ func Upload(url, packageName, vendor, depth string) {
 		}
 
 	} else {
-		log.Println(depth + "Skipping " + packageName + ". Reusing present one.")
+		log.Println(depth + "Skipping " + packageName + ". Reusing present one")
 	}
 
 	log.Println(depth + "└─ Finished packing: " + packageName)

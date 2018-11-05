@@ -7,10 +7,13 @@ import (
 	"github.com/evoila/BPM-Client/rest"
 	"github.com/evoila/BPM-Client/s3"
 	"github.com/pkg/errors"
+	"log"
 	"os"
 )
 
-func Download(url string, requestBody PackageRequestBody) {
+func Download(url, depth string, requestBody PackageRequestBody) {
+
+	log.Println(depth + "├─  Downloading package: " + requestBody.Name)
 
 	var permission = rest.GetDownloadPermission(url, requestBody)
 
@@ -22,6 +25,7 @@ func Download(url string, requestBody PackageRequestBody) {
 		panic(err)
 	}
 
+	log.Println(depth + "├─  Setting it up")
 	UnzipPackage(requestBody.Name+".bpm", destination)
 
 	err = os.Remove(requestBody.Name + ".bpm")
@@ -46,10 +50,13 @@ func Download(url string, requestBody PackageRequestBody) {
 				Name:    dependency,
 				Version: meta.Version,
 				Vendor:  meta.Vendor}
+			log.Println(depth + "├─  Handling dependency")
 
-			Download(url, dependencyRequest)
+			Download(url, "|	", dependencyRequest)
 		}
 	}
+
+	log.Println(depth + "└─ Finished package: " + requestBody.Name)
 }
 
 func findDependency(url string, dependency string) (*MetaData, error) {

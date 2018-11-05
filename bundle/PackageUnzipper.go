@@ -2,7 +2,6 @@ package bundle
 
 import (
 	"archive/zip"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -68,6 +67,5 @@ func UnzipPackage(src, destination string) error {
 		}
 	}
 
-	fmt.Println("Finished Unzipping " + src)
 	return nil
 }

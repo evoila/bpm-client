@@ -58,7 +58,7 @@ func PutMetaData(url string, data MetaData, force bool) *S3Permission {
 		var metaData []MetaData
 		err = Unmarshal(responseBody, &metaData)
 
-		fmt.Println("At least one package named " + data.Name + " already exists:")
+		fmt.Println("At least one package named " + data.Name + " already exists.")
 
 		if askOperatorForProcedure(metaData) {
 			return PutMetaData(url, data, true)
@@ -133,9 +133,6 @@ func GetDownloadPermission(url string, request PackageRequestBody) S3Permission 
 		panic(err)
 	}
 	defer resp.Body.Close()
-
-	fmt.Println("response Status:", resp.Status)
-	fmt.Println("response Headers:", resp.Header)
 
 	responseBody, _ := ioutil.ReadAll(resp.Body)
 
