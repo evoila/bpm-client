@@ -12,7 +12,7 @@ var rootCmd = &cobra.Command{
 	Use:   "BPM-Client",
 	Short: "CLI Tool to access Bosh Package Manager",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Hello Hugo")
+		fmt.Println("Please specify one command of: upload, update, download, delete, search")
 	},
 }
 
@@ -22,17 +22,15 @@ func init() {
 
 	var config = helpers.ReadConfig(configLocation)
 	var pack, version string
+	var endpoint = config.Url + ":" + config.Port
+	helpers.MoveToReleaseDir()
 
 	var uploadCmd = &cobra.Command{
 		Use:   "upload",
 		Short: "Upload a package to Bosh Package Manager",
 		Run: func(cmd *cobra.Command, args []string) {
 
-			endpoint := config.Url + ":" + config.Port
-
-			helpers.MoveToReleaseDir()
-
-			Upload(endpoint, pack, config.Vendor, "")
+			CheckIfAlreadyPresentAndUpload(endpoint, pack, config.Vendor)
 		},
 	}
 	uploadCmd.Flags().StringVarP(&pack, "package", "p", "", "The name of the package to upload")
@@ -44,10 +42,6 @@ func init() {
 		Use:   "download",
 		Short: "Download a package with all dependencies from Bosh Package Manager",
 		Run: func(cmd *cobra.Command, args []string) {
-
-			endpoint := config.Url + ":" + config.Port
-
-			helpers.MoveToReleaseDir()
 
 			requestBody := model.PackageRequestBody{
 				Name:    pack,
