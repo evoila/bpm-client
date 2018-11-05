@@ -1,22 +1,17 @@
 package rest
 
 import (
-	"bufio"
 	. "bytes"
 	. "encoding/json"
-	"fmt"
 	. "github.com/evoila/BPM-Client/helpers"
+	. "github.com/evoila/BPM-Client/model"
 	"io/ioutil"
 	"log"
 	. "net/http"
-	"os"
 	"strconv"
-	"strings"
-
-	. "github.com/evoila/BPM-Client/model"
 )
 
-func PutMetaData(url string, data MetaData, force bool) *S3Permission {
+func PutMetaData(url string, data MetaData, force bool) (*S3Permission, *MetaData) {
 
 	client := &Client{}
 
@@ -46,7 +41,7 @@ func PutMetaData(url string, data MetaData, force bool) *S3Permission {
 		var converted S3Permission
 		err = Unmarshal(responseBody, &converted)
 
-		return &converted
+		return &converted, nil
 
 	} else if response.StatusCode == 409 {
 
@@ -55,50 +50,13 @@ func PutMetaData(url string, data MetaData, force bool) *S3Permission {
 			log.Fatal(err)
 		}
 
-		var metaData []MetaData
+		var metaData MetaData
 		err = Unmarshal(responseBody, &metaData)
 
-		fmt.Println("At least one package named " + data.Name + " already exists.")
-
-		if askOperatorForProcedure(metaData) {
-			return PutMetaData(url, data, true)
-		}
+		return nil, &metaData
+	} else {
+		panic("A unexpected response code: " + strconv.Itoa(response.StatusCode))
 	}
-
-	return nil
-}
-
-func askOperatorForProcedure(data []MetaData) bool {
-
-	for _, d := range data {
-		fmt.Println(d.String())
-	}
-
-	scanner := bufio.NewScanner(os.Stdin)
-	var text string
-
-	for !acceptInput(text) {
-		fmt.Print("Do you want to upload your own package anyway? ")
-		scanner.Scan()
-		text = scanner.Text()
-	}
-
-	return strings.ToLower(text) == "yes" || strings.ToLower(text) == "y"
-}
-
-func acceptInput(text string) bool {
-
-	var acceptedAnswers = []string{"yes", "y", "no", "n"}
-
-	for _, s := range acceptedAnswers {
-
-		if strings.ToLower(text) == s {
-			return true
-		}
-	}
-
-	fmt.Println("Please enter yes / y or no / No")
-	return false
 }
 
 func GetMetaDataForPackageName(url, name string) []MetaData {
@@ -125,14 +83,19 @@ func GetMetaDataForPackageName(url, name string) []MetaData {
 	return metaData
 }
 
-func GetDownloadPermission(url string, request PackageRequestBody) S3Permission {
+func GetDownloadPermission(url string, request PackageRequestBody) *S3Permission {
 
-	resp, err := Get(BuildPath([]string{url, request.Vendor, request.Name, request.Version}))
+	resp, err := Get(BuildPath([]string{url, "download", request.Vendor, request.Name, request.Version}))
 
 	if err != nil {
 		panic(err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode == 404 {
+		return nil
+	}
+
 
 	responseBody, _ := ioutil.ReadAll(resp.Body)
 
@@ -143,7 +106,7 @@ func GetDownloadPermission(url string, request PackageRequestBody) S3Permission 
 		panic(err)
 	}
 
-	return permission
+	return &permission
 }
 
 func buildBody(data MetaData) ([]byte, error) {
@@ -159,9 +122,9 @@ func buildBody(data MetaData) ([]byte, error) {
 }
 
 type requestBody struct {
-	Name         string   `json:"name"`
-	Version      string   `json:"version"`
-	Vendor       string   `json:"vendor"`
-	Files        []string `json:"files"`
-	Dependencies []string `json:"dependencies"`
+	Name         string       `json:"name"`
+	Version      string       `json:"version"`
+	Vendor       string       `json:"vendor"`
+	Files        []string     `json:"files"`
+	Dependencies []Dependency `json:"dependencies"`
 }
