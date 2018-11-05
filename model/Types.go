@@ -1,5 +1,7 @@
 package model
 
+import "strings"
+
 type ResponseBody struct {
 	Name       string   `json:"name"`
 	Version    string   `json:"version"`
@@ -11,10 +13,40 @@ type ResponseBody struct {
 type MetaData struct {
 	Name, Version, Vendor, FilePath string
 	Files                           []string
+	Dependencies                    []Dependency
+}
+
+type Dependency struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+	Vendor  string `json:"vendor"`
+}
+
+func (m MetaData) String() string {
+
+	var depsAsStrings []string
+
+	if len(m.Dependencies) > 1 {
+		for _, d := range m.Dependencies {
+			depsAsStrings = append(depsAsStrings, d.String())
+		}
+	} else {
+		depsAsStrings = append(depsAsStrings, "none")
+	}
+
+	return "Name:         " + m.Name + "\n" +
+		"Version:      " + m.Version + "\n" +
+		"Vendor:       " + m.Vendor + "\n" +
+		"Files:        " + strings.Join(m.Files, "\n              ") + "\n" +
+		"Dependencies: " + strings.Join(depsAsStrings, "\n              ") + "\n"
+}
+
+func (d Dependency) String() string {
+	return d.Name + ":" + d.Version + " by " + d.Vendor
 }
 
 type SpecFile struct {
-	Name                string
+	Name, Version       string
 	Files, Dependencies []string
 }
 

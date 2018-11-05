@@ -1,3 +1,4 @@
  url: localhost
  port: 8080
- vendor: Evoila
+ vendor: evoila
+ visibility: public # private, vendor, public

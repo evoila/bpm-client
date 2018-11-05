@@ -2,7 +2,6 @@ package s3
 
 import (
 	"errors"
-	"log"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -14,7 +13,6 @@ import (
 
 func UploadFile(path string, body S3Permission) error {
 
-	log.Println("Upload File at", path)
 	file, err := os.Open(path)
 	if err != nil {
 		return errors.New("Failed to open file " + path + " due to '" + err.Error() + "'")
@@ -48,14 +46,12 @@ func UploadFile(path string, body S3Permission) error {
 	if err != nil {
 		return errors.New("Failed to upload to S3 due to '" + err.Error() + "'")
 	}
-	log.Printf("Successfully uploaded %q to %q\n", body.S3location, body.Bucket)
 
 	return nil
 }
 
 func DownloadFile(filename string, body S3Permission) error {
 
-	log.Println("Creating file at", filename+".bpm")
 	file, err := os.Create(filename + ".bpm")
 	if err != nil {
 		return errors.New("Failed to create file " + filename + "due to '" + err.Error() + "'")
@@ -81,7 +77,7 @@ func DownloadFile(filename string, body S3Permission) error {
 	var downloader = s3manager.NewDownloader(downloadSession)
 	//var client = s3.New(downloadSession)
 
-	numBytes, err := downloader.Download(file,
+	_, err = downloader.Download(file,
 		&s3.GetObjectInput{
 			Bucket: aws.String(body.Bucket),
 			Key:    aws.String(body.S3location),
@@ -89,8 +85,6 @@ func DownloadFile(filename string, body S3Permission) error {
 	if err != nil {
 		return errors.New("Failed to download the file " + filename + "  due to '" + err.Error() + "'")
 	}
-
-	log.Println("Successfully downloaded", file.Name(), "(", numBytes, "bytes )")
 
 	return nil
 }

@@ -3,16 +3,15 @@ package rest
 import (
 	. "bytes"
 	. "encoding/json"
-	"fmt"
 	. "github.com/evoila/BPM-Client/helpers"
+	. "github.com/evoila/BPM-Client/model"
 	"io/ioutil"
 	"log"
 	. "net/http"
-
-	. "github.com/evoila/BPM-Client/model"
+	"strconv"
 )
 
-func PutMetaData(url string, data MetaData) S3Permission {
+func PutMetaData(url string, data MetaData, force bool) (*S3Permission, *MetaData) {
 
 	client := &Client{}
 
@@ -21,7 +20,8 @@ func PutMetaData(url string, data MetaData) S3Permission {
 	if err != nil {
 		panic(err)
 	}
-	request, err := NewRequest("PUT", BuildPath([]string{url, "upload/package"}), NewBuffer(body))
+
+	request, err := NewRequest("PUT", BuildPath([]string{url, "upload/package?force=" + strconv.FormatBool(force)}), NewBuffer(body))
 	request.Header.Set("Content-Type", "application/json")
 
 	response, err := client.Do(request)
@@ -31,15 +31,32 @@ func PutMetaData(url string, data MetaData) S3Permission {
 
 	defer response.Body.Close()
 
-	responseBody, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		log.Fatal(err)
+	if response.StatusCode == 202 {
+
+		responseBody, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var converted S3Permission
+		err = Unmarshal(responseBody, &converted)
+
+		return &converted, nil
+
+	} else if response.StatusCode == 409 {
+
+		responseBody, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var metaData MetaData
+		err = Unmarshal(responseBody, &metaData)
+
+		return nil, &metaData
+	} else {
+		panic("A unexpected response code: " + strconv.Itoa(response.StatusCode))
 	}
-
-	var converted S3Permission
-	err = Unmarshal(responseBody, &converted)
-
-	return converted
 }
 
 func GetMetaDataForPackageName(url, name string) []MetaData {
@@ -66,17 +83,19 @@ func GetMetaDataForPackageName(url, name string) []MetaData {
 	return metaData
 }
 
-func GetDownloadPermission(url string, request PackageRequestBody) S3Permission {
+func GetDownloadPermission(url string, request PackageRequestBody) *S3Permission {
 
-	resp, err := Get(BuildPath([]string{url, request.Vendor, request.Name, request.Version}))
+	resp, err := Get(BuildPath([]string{url, "download", request.Vendor, request.Name, request.Version}))
 
 	if err != nil {
 		panic(err)
 	}
 	defer resp.Body.Close()
 
-	fmt.Println("response Status:", resp.Status)
-	fmt.Println("response Headers:", resp.Header)
+	if resp.StatusCode == 404 {
+		return nil
+	}
+
 
 	responseBody, _ := ioutil.ReadAll(resp.Body)
 
@@ -87,23 +106,25 @@ func GetDownloadPermission(url string, request PackageRequestBody) S3Permission 
 		panic(err)
 	}
 
-	return permission
+	return &permission
 }
 
 func buildBody(data MetaData) ([]byte, error) {
 
 	requestBody := requestBody{
-		Name:    data.Name,
-		Version: data.Version,
-		Vendor:  data.Vendor,
-		Files:   data.Files}
+		Name:         data.Name,
+		Version:      data.Version,
+		Vendor:       data.Vendor,
+		Files:        data.Files,
+		Dependencies: data.Dependencies}
 
 	return Marshal(requestBody)
 }
 
 type requestBody struct {
-	Name    string   `json:"name"`
-	Version string   `json:"version"`
-	Vendor  string   `json:"vendor"`
-	Files   []string `json:"files"`
+	Name         string       `json:"name"`
+	Version      string       `json:"version"`
+	Vendor       string       `json:"vendor"`
+	Files        []string     `json:"files"`
+	Dependencies []Dependency `json:"dependencies"`
 }
