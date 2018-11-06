@@ -97,7 +97,7 @@ func upload(url, packageName, vendor, depth string, update bool) {
 		for _, dependency := range result.Dependencies {
 			fmt.Println(depth + "├─ Handling dependency")
 
-			upload(url, dependency.Name, dependency.Vendor, "|	"+depth, update)
+			upload(url, dependency.Name, dependency.Vendor, "│  "+depth, update)
 		}
 
 		fmt.Println(depth + "└─ Finished packing: " + packageName)
@@ -114,7 +114,7 @@ func askUser(data MetaData, depth string) bool {
 
 	scanner := bufio.NewScanner(os.Stdin)
 	var text string
-	fmt.Println(depth + "|	This will alter the package with all dependencies. Are you sure? ")
+	fmt.Println(depth + "│  This will alter the package with all dependencies. Are you sure? ")
 
 	for !acceptInput(text, depth) {
 		scanner.Scan()
@@ -126,7 +126,7 @@ func askUser(data MetaData, depth string) bool {
 
 func askOperatorForProcedure(data []MetaData) bool {
 
-	fmt.Println("Found fhe following packages with similar or same content")
+	fmt.Println("│  Found fhe following packages with similar or same content")
 
 	for _, d := range data {
 		fmt.Println(d.String(""))
@@ -135,8 +135,8 @@ func askOperatorForProcedure(data []MetaData) bool {
 	scanner := bufio.NewScanner(os.Stdin)
 	var text string
 
+	fmt.Println("│  Do you want to upload your version anyway? ")
 	for !acceptInput(text, "") {
-		fmt.Println("Do you want to upload your version anyway? ")
 		scanner.Scan()
 		text = scanner.Text()
 	}
@@ -155,7 +155,7 @@ func acceptInput(text, depth string) bool {
 		}
 	}
 
-	fmt.Print(depth + "|	Please enter yes / y or no / n	Answer: ")
+	fmt.Print(depth + "│  Please enter yes / y or no / n	Answer: ")
 	return false
 }
 

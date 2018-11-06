@@ -5,6 +5,7 @@ import (
 	"github.com/evoila/BPM-Client/helpers"
 	. "github.com/evoila/BPM-Client/model"
 	"github.com/spf13/cobra"
+	"log"
 	"os"
 )
 
@@ -27,12 +28,15 @@ func init() {
 		Short: "Upload a package to Bosh Package Manager",
 		Run: func(cmd *cobra.Command, args []string) {
 			setupConfig()
+			log.Println("Begin upload.")
 
 			if update {
 				RunUpdateIfPackagePresentUploadIfNot(endpoint, pack, config.Vendor)
 			} else {
 				CheckIfAlreadyPresentAndUpload(endpoint, pack, config.Vendor)
 			}
+
+			log.Println("Finished upload.")
 		},
 	}
 	uploadCmd.Flags().StringVarP(&pack, "package", "p", "", "The name of the package to upload")

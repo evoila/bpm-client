@@ -70,17 +70,21 @@ func GetMetaData(url, vendor, name, version string) *MetaData {
 	}
 	defer resp.Body.Close()
 
-	responseBody, _ := ioutil.ReadAll(resp.Body)
+	if resp.StatusCode == 200 {
 
-	var metaData MetaData
-	err = Unmarshal(responseBody, &metaData)
+		responseBody, _ := ioutil.ReadAll(resp.Body)
 
-	if err != nil {
-		panic(err)
+		var metaData MetaData
+		err = Unmarshal(responseBody, &metaData)
+
+		if err != nil {
+			panic(err)
+		}
+
+		return &metaData
+	} else {
+		return nil
 	}
-
-	return &metaData
-
 }
 
 func GetMetaDataListForPackageName(url, name string) []MetaData {

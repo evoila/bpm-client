@@ -34,20 +34,20 @@ func (m MetaData) String(depth string) string {
 		depsAsStrings = append(depsAsStrings, "none")
 	}
 
-	if len(depsAsStrings) > 1 {
-		return depth + "|	Name:         " + m.Name + "\n" +
-			depth + "|	Version:      " + m.Version + "\n" +
-			depth + "|	Vendor:       " + m.Vendor + "\n" +
-			depth + "|	Files:        " + strings.Join(m.Files, "\n              ") + "\n" +
-			depth + "|	Dependencies: " + strings.Join(depsAsStrings, depth+"\n|	              ") +
-			depth + "\n|"
+	return depth + "│  Name:         " + m.Name + "\n" +
+		depth + "│  Version:      " + m.Version + "\n" +
+		depth + "│  Vendor:       " + m.Vendor + "\n" +
+		depth + "│  Files:        " + formatStringArray(m.Files, depth) +
+		depth + "│  Dependencies: " + formatStringArray(depsAsStrings, depth) +
+		depth + "│"
+}
+
+func formatStringArray(stringArray []string, depth string) string {
+
+	if len(stringArray) > 1 {
+		return strings.Join(stringArray, "\n"+depth+"│                ") + "\n"
 	} else {
-		return depth + "|	Name:         " + m.Name + "\n" +
-			depth + "|	Version:      " + m.Version + "\n" +
-			depth + "|	Vendor:       " + m.Vendor + "\n" +
-			depth + "|	Files:        " + strings.Join(m.Files, "\n              ") + "\n" +
-			depth + "|	Dependencies: " + strings.Join(depsAsStrings, "\n|") +
-			depth + "\n|"
+		return strings.Join(stringArray, "") + "\n"
 	}
 }
 
