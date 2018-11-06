@@ -9,32 +9,45 @@ import (
 	. "github.com/evoila/BPM-Client/model"
 	. "github.com/evoila/BPM-Client/rest"
 	. "github.com/evoila/BPM-Client/s3"
-	"log"
 	"os"
 	"strings"
 )
 
 var set = NewStringSet()
 
-func CheckIfAlreadyPresentAndUpload(url, packageName, vendor string) {
+func RunUpdateIfPackagePresentUploadIfNot(url, packageName, vendor string) {
 
-	metaData := GetMetaDataForPackageName(url, packageName)
+	specFile := ReadSpec("./packages/" + packageName)
+	metaData := GetMetaData(url, vendor, packageName, specFile.Version)
 
-	if len(metaData) < 1 || askOperatorForProcedure(metaData) {
-		upload(url, packageName, vendor, "")
+	if metaData == nil {
+		fmt.Println("Specified package not found. Uploading instead of updating.")
+
+		CheckIfAlreadyPresentAndUpload(url, packageName, vendor)
+	} else {
+		upload(url, packageName, vendor, "", true)
 	}
 }
 
-func upload(url, packageName, vendor, depth string) {
+func CheckIfAlreadyPresentAndUpload(url, packageName, vendor string) {
+
+	metaData := GetMetaDataListForPackageName(url, packageName)
+
+	if len(metaData) < 1 || askOperatorForProcedure(metaData) {
+		upload(url, packageName, vendor, "", false)
+	}
+}
+
+func upload(url, packageName, vendor, depth string, update bool) {
 
 	if set.Get(packageName) {
-		log.Println(depth + "└─  Dependency " + packageName + " already handled")
+		fmt.Println(depth + "└─  Dependency " + packageName + " already handled")
 		return
 	}
 
 	set.Add(packageName)
 
-	log.Println(depth + "├─ Packing: " + packageName)
+	fmt.Println(depth + "├─ Packing: " + packageName)
 
 	specFile := ReadSpec("./packages/" + packageName)
 	pack := "./" + packageName + ".bpm"
@@ -49,9 +62,13 @@ func upload(url, packageName, vendor, depth string) {
 		Files:        specFile.Files,
 		Dependencies: dependencies}
 
-	var response, _ = PutMetaData(url, result, false)
+	var permission, oldMeta = PutMetaData(url, result, false)
 
-	if response != nil {
+	if update && oldMeta != nil && askUser(*oldMeta, depth) {
+		permission, _ = PutMetaData(url, result, true)
+	}
+
+	if permission != nil {
 
 		filesToZip, err := ScanPackageFolder(packageName)
 		if err != nil {
@@ -63,14 +80,14 @@ func upload(url, packageName, vendor, depth string) {
 
 		ZipMe(filesToZip, pack)
 
-		log.Println(depth + "├─ Upload Package")
+		fmt.Println(depth + "├─ Upload Package")
 
-		err = UploadFile(result.FilePath, *response)
+		err = UploadFile(result.FilePath, *permission)
 		if err != nil {
 			panic(err)
 		}
 
-		log.Println(depth + "├─ Successfully uploaded")
+		fmt.Println(depth + "├─ Successfully uploaded")
 
 		err = os.Remove(result.FilePath)
 		if err != nil {
@@ -78,31 +95,28 @@ func upload(url, packageName, vendor, depth string) {
 		}
 
 		for _, dependency := range result.Dependencies {
-			log.Println(depth + "├─ Handling dependency")
+			fmt.Println(depth + "├─ Handling dependency")
 
-			upload(url, dependency.Name, dependency.Vendor, "|	"+depth)
+			upload(url, dependency.Name, dependency.Vendor, "|	"+depth, update)
 		}
 
-		log.Println(depth + "└─ Finished packing: " + packageName)
+		fmt.Println(depth + "└─ Finished packing: " + packageName)
 
 	} else {
-		log.Println(depth + "└─ Skipped. Already present. Use update if you want to replace it")
+		fmt.Println(depth + "└─ Skipped. Already present. Use update if you want to replace it")
 	}
 }
 
-func askOperatorForProcedure(data []MetaData) bool {
+func askUser(data MetaData, depth string) bool {
 
-	fmt.Println("Found fhe following packages with similar or same content")
-
-	for _, d := range data {
-		fmt.Println(d.String())
-	}
+	fmt.Println(depth + "├─ Update Package")
+	fmt.Println(data.String(depth))
 
 	scanner := bufio.NewScanner(os.Stdin)
 	var text string
+	fmt.Println(depth + "|	This will alter the package with all dependencies. Are you sure? ")
 
-	for !acceptInput(text) {
-		fmt.Print("Do you want to upload your version anyway? ")
+	for !acceptInput(text, depth) {
 		scanner.Scan()
 		text = scanner.Text()
 	}
@@ -110,7 +124,27 @@ func askOperatorForProcedure(data []MetaData) bool {
 	return strings.ToLower(text) == "yes" || strings.ToLower(text) == "y"
 }
 
-func acceptInput(text string) bool {
+func askOperatorForProcedure(data []MetaData) bool {
+
+	fmt.Println("Found fhe following packages with similar or same content")
+
+	for _, d := range data {
+		fmt.Println(d.String(""))
+	}
+
+	scanner := bufio.NewScanner(os.Stdin)
+	var text string
+
+	for !acceptInput(text, "") {
+		fmt.Println("Do you want to upload your version anyway? ")
+		scanner.Scan()
+		text = scanner.Text()
+	}
+
+	return strings.ToLower(text) == "yes" || strings.ToLower(text) == "y"
+}
+
+func acceptInput(text, depth string) bool {
 
 	var acceptedAnswers = []string{"yes", "y", "no", "n"}
 
@@ -121,7 +155,7 @@ func acceptInput(text string) bool {
 		}
 	}
 
-	fmt.Println("Please enter yes / y or no / n")
+	fmt.Print(depth + "|	Please enter yes / y or no / n	Answer: ")
 	return false
 }
 

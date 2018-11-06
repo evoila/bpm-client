@@ -65,7 +65,7 @@ func Download(url, depth string, requestBody PackageRequestBody) {
 }
 
 func findDependency(url string, dependency string) (*MetaData, error) {
-	var possibilities = rest.GetMetaDataForPackageName(url, dependency)
+	var possibilities = rest.GetMetaDataListForPackageName(url, dependency)
 
 	for _, metaData := range possibilities {
 		if metaData.Name == dependency {
