@@ -22,11 +22,11 @@ type Dependency struct {
 	Vendor  string `json:"vendor"`
 }
 
-func (m MetaData) String() string {
+func (m MetaData) String(depth string) string {
 
 	var depsAsStrings []string
 
-	if len(m.Dependencies) > 1 {
+	if len(m.Dependencies) > 0 {
 		for _, d := range m.Dependencies {
 			depsAsStrings = append(depsAsStrings, d.String())
 		}
@@ -34,11 +34,21 @@ func (m MetaData) String() string {
 		depsAsStrings = append(depsAsStrings, "none")
 	}
 
-	return "Name:         " + m.Name + "\n" +
-		"Version:      " + m.Version + "\n" +
-		"Vendor:       " + m.Vendor + "\n" +
-		"Files:        " + strings.Join(m.Files, "\n              ") + "\n" +
-		"Dependencies: " + strings.Join(depsAsStrings, "\n              ") + "\n"
+	return depth + "│  Name:         " + m.Name + "\n" +
+		depth + "│  Version:      " + m.Version + "\n" +
+		depth + "│  Vendor:       " + m.Vendor + "\n" +
+		depth + "│  Files:        " + formatStringArray(m.Files, depth) +
+		depth + "│  Dependencies: " + formatStringArray(depsAsStrings, depth) +
+		depth + "│"
+}
+
+func formatStringArray(stringArray []string, depth string) string {
+
+	if len(stringArray) > 1 {
+		return strings.Join(stringArray, "\n"+depth+"│                ") + "\n"
+	} else {
+		return strings.Join(stringArray, "") + "\n"
+	}
 }
 
 func (d Dependency) String() string {

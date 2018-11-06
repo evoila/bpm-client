@@ -1,78 +1,71 @@
 package cmd
 
 import (
+	"fmt"
 	. "github.com/evoila/BPM-Client/bundle"
 	. "github.com/evoila/BPM-Client/helpers"
 	. "github.com/evoila/BPM-Client/model"
 	"github.com/evoila/BPM-Client/rest"
 	"github.com/evoila/BPM-Client/s3"
-	"github.com/pkg/errors"
-	"log"
 	"os"
 )
 
 func Download(url, depth string, requestBody PackageRequestBody) {
 
-	log.Println(depth + "├─  Downloading package: " + requestBody.Name)
+	stat, _ := os.Stat(BuildPath([]string{"packages", requestBody.Name}))
 
-	var permission = rest.GetDownloadPermission(url, requestBody)
+	if stat != nil {
+		fmt.Println(depth + "└─ Package '" + requestBody.Name + "' already set up in this release.")
+		return
+	}
+
+	fmt.Println(depth + "├─ Downloading package: ")
+
+	metaData := rest.GetMetaData(url, requestBody.Vendor, requestBody.Name, requestBody.Version)
+	permission := rest.GetDownloadPermission(url, requestBody)
+
+	if metaData == nil {
+		fmt.Println(depth + "└─ Package '" + requestBody.Name + "' does not exist.")
+		return
+	}
+
+	fmt.Println(metaData.String(depth))
 
 	if permission == nil {
-		log.Println(depth + "└─  Package has not been found")
+		fmt.Println(depth + "└─ Download permission has not been granted.")
 		return
 	}
 
 	s3.DownloadFile(requestBody.Name, *permission)
 
-	var destination, err = os.Getwd()
+	destination, err := os.Getwd()
 
 	if err != nil {
 		panic(err)
 	}
 
-	log.Println(depth + "├─  Setting it up")
-	UnzipPackage(requestBody.Name+".bpm", destination)
+	fmt.Println(depth + "├─ Download successful")
+	err = UnzipPackage(requestBody.Name+".bpm", destination)
+
+	if err != nil {
+		panic(err)
+	}
 
 	err = os.Remove(requestBody.Name + ".bpm")
 	if err != nil {
 		panic(err)
 	}
 
-	var specFile = ReadSpec(BuildPath([]string{"packages", requestBody.Name}))
+	for _, dependency := range metaData.Dependencies {
 
-	for _, dependency := range specFile.Dependencies {
+		dependencyRequest := PackageRequestBody{
+			Name:    dependency.Name,
+			Version: dependency.Version,
+			Vendor:  dependency.Vendor}
+		fmt.Println(depth + "├─ Handling dependency")
 
-		_, err := os.Stat(BuildPath([]string{"packages", dependency}))
-
-		if os.IsNotExist(err) {
-			meta, err := findDependency(url, dependency)
-
-			if err != nil {
-				panic(err)
-			}
-
-			dependencyRequest := PackageRequestBody{
-				Name:    dependency,
-				Version: meta.Version,
-				Vendor:  meta.Vendor}
-			log.Println(depth + "├─  Handling dependency")
-
-			Download(url, "|	", dependencyRequest)
-		}
+		Download(url, depth+"│  ", dependencyRequest)
 	}
 
-	log.Println(depth + "└─ Finished package: " + requestBody.Name)
-}
-
-func findDependency(url string, dependency string) (*MetaData, error) {
-	var possibilities = rest.GetMetaDataForPackageName(url, dependency)
-
-	for _, metaData := range possibilities {
-		if metaData.Name == dependency {
-
-			return &metaData, nil
-		}
-	}
-
-	return nil, errors.New("did not find a matching package")
+	fmt.Println(depth + "└─ Finished package: " + requestBody.Name)
 }

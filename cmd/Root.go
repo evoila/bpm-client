@@ -3,8 +3,9 @@ package cmd
 import (
 	"fmt"
 	"github.com/evoila/BPM-Client/helpers"
-	"github.com/evoila/BPM-Client/model"
+	. "github.com/evoila/BPM-Client/model"
 	"github.com/spf13/cobra"
+	"log"
 	"os"
 )
 
@@ -16,34 +17,39 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+var config Config
+var pack, version, endpoint string
+var update bool
+
 func init() {
-
-	configLocation := os.Getenv("BOSH_PACKAGE_MANAGER_CONFIG")
-
-	var config = helpers.ReadConfig(configLocation)
-	var pack, version string
-	var endpoint = config.Url + ":" + config.Port
-	helpers.MoveToReleaseDir()
 
 	var uploadCmd = &cobra.Command{
 		Use:   "upload",
 		Short: "Upload a package to Bosh Package Manager",
 		Run: func(cmd *cobra.Command, args []string) {
+			setupConfig()
+			log.Println("Begin upload.")
 
-			CheckIfAlreadyPresentAndUpload(endpoint, pack, config.Vendor)
+			if update {
+				RunUpdateIfPackagePresentUploadIfNot(endpoint, pack, config.Vendor)
+			} else {
+				CheckIfAlreadyPresentAndUpload(endpoint, pack, config.Vendor)
+			}
+
+			log.Println("Finished upload.")
 		},
 	}
 	uploadCmd.Flags().StringVarP(&pack, "package", "p", "", "The name of the package to upload")
 	uploadCmd.MarkFlagRequired("package")
-
-	rootCmd.AddCommand(uploadCmd)
+	uploadCmd.Flags().BoolVar(&update, "update", false, "Set if you want tp update packages.")
 
 	var downloadCmd = &cobra.Command{
 		Use:   "download",
 		Short: "Download a package with all dependencies from Bosh Package Manager",
 		Run: func(cmd *cobra.Command, args []string) {
+			setupConfig()
 
-			requestBody := model.PackageRequestBody{
+			requestBody := PackageRequestBody{
 				Name:    pack,
 				Vendor:  config.Vendor,
 				Version: version}
@@ -56,7 +62,16 @@ func init() {
 	downloadCmd.Flags().StringVarP(&version, "version", "v", "", "Version of the package to upload")
 	downloadCmd.MarkFlagRequired("version")
 
+	rootCmd.AddCommand(uploadCmd)
 	rootCmd.AddCommand(downloadCmd)
+}
+
+func setupConfig() {
+	configLocation := os.Getenv("BOSH_PACKAGE_MANAGER_CONFIG")
+
+	config = helpers.ReadConfig(configLocation)
+	endpoint = config.Url + ":" + config.Port
+	helpers.MoveToReleaseDir()
 
 }
 

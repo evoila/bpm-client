@@ -59,7 +59,35 @@ func PutMetaData(url string, data MetaData, force bool) (*S3Permission, *MetaDat
 	}
 }
 
-func GetMetaDataForPackageName(url, name string) []MetaData {
+func GetMetaData(url, vendor, name, version string) *MetaData {
+
+	path := BuildPath([]string{url, "package", vendor, name, version})
+
+	resp, err := Get(path)
+
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 200 {
+
+		responseBody, _ := ioutil.ReadAll(resp.Body)
+
+		var metaData MetaData
+		err = Unmarshal(responseBody, &metaData)
+
+		if err != nil {
+			panic(err)
+		}
+
+		return &metaData
+	} else {
+		return nil
+	}
+}
+
+func GetMetaDataListForPackageName(url, name string) []MetaData {
 
 	path := BuildPath([]string{url, "package?name=" + name})
 
@@ -95,7 +123,6 @@ func GetDownloadPermission(url string, request PackageRequestBody) *S3Permission
 	if resp.StatusCode == 404 {
 		return nil
 	}
-
 
 	responseBody, _ := ioutil.ReadAll(resp.Body)
 
