@@ -22,6 +22,7 @@ func UploadFile(path string, body S3Permission) error {
 	// -- Creating session, service client and uploader --
 	os.Setenv("AWS_ACCESS_KEY_ID", body.AuthKey)
 	os.Setenv("AWS_SECRET_ACCESS_KEY", body.AuthSecret)
+	os.Setenv("AWS_SESSION_TOKEN", body.SessionToken)
 
 	//Clear credentials after use
 	defer os.Setenv("AWS_ACCESS_KEY_ID", "")
@@ -61,10 +62,13 @@ func DownloadFile(filename string, body S3Permission) error {
 	// -- Creating downloadSession, service client and uploader --
 	os.Setenv("AWS_ACCESS_KEY_ID", body.AuthKey)
 	os.Setenv("AWS_SECRET_ACCESS_KEY", body.AuthSecret)
+	os.Setenv("AWS_SESSION_TOKEN", body.SessionToken)
 
 	//Clear credentials after use
 	defer os.Setenv("AWS_ACCESS_KEY_ID", "")
 	defer os.Setenv("AWS_SECRET_ACCESS_KEY", "")
+	defer os.Setenv("AWS_SESSION_TOKEN", "")
+
 
 	downloadSession, err := session.NewSession(&aws.Config{
 		Region: aws.String(body.Region)},
