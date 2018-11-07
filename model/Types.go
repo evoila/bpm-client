@@ -79,6 +79,7 @@ type S3Permission struct {
 	AuthKey    string `json:"auth-key"`
 	AuthSecret string `json:"auth-secret"`
 	S3location string `json:"s3location"`
+	SessionToken string `json:"session-token"`
 }
 
 type Config struct {
