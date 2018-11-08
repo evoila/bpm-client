@@ -72,7 +72,6 @@ func setupConfig() {
 	config = helpers.ReadConfig(configLocation)
 	endpoint = config.Url + ":" + config.Port
 	helpers.MoveToReleaseDir()
-
 }
 
 func Execute() {
