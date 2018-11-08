@@ -51,14 +51,18 @@ func Download(url, depth string, requestBody PackageRequestBody) {
 	fmt.Println(depth + "├─ Download successful")
 	err = UnzipPackage(requestBody.Name+".bpm", destination)
 
-	if err != nil {
-		panic(err)
-	}
+	go func() {
+		if err != nil {
+			panic(err)
+		}
 
-	err = os.Remove(requestBody.Name + ".bpm")
-	if err != nil {
-		panic(err)
-	}
+		defer func() {
+			err = os.Remove(requestBody.Name + ".bpm")
+			if err != nil {
+				panic(err)
+			}
+		}()
+	}()
 
 	for _, dependency := range metaData.Dependencies {
 

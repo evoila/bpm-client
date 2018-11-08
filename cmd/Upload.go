@@ -78,7 +78,18 @@ func upload(url, packageName, vendor, depth string, update bool) {
 		filesToZip = MergeStringList(filesToZip, ScanFolderAndFilter(specFile.Files, "./blobs/"))
 		filesToZip = MergeStringList(filesToZip, ScanFolderAndFilter(specFile.Files, "./src/"))
 
-		ZipMe(filesToZip, pack)
+		err = ZipMe(filesToZip, pack)
+
+		defer func() {
+			err = os.Remove(result.FilePath)
+			if err != nil {
+				panic(err)
+			}
+		}()
+
+		if err != nil {
+			panic(err)
+		}
 
 		fmt.Println(depth + "├─ Upload Package")
 
@@ -88,11 +99,6 @@ func upload(url, packageName, vendor, depth string, update bool) {
 		}
 
 		fmt.Println(depth + "├─ Successfully uploaded")
-
-		err = os.Remove(result.FilePath)
-		if err != nil {
-			panic(err)
-		}
 
 		for _, dependency := range result.Dependencies {
 			fmt.Println(depth + "├─ Handling dependency")
