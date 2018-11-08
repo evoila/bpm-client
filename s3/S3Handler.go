@@ -2,6 +2,7 @@ package s3
 
 import (
 	"errors"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -19,24 +20,18 @@ func UploadFile(path string, body S3Permission) error {
 	}
 	defer file.Close()
 
-	// -- Creating session, service client and uploader --
-	os.Setenv("AWS_ACCESS_KEY_ID", body.AuthKey)
-	os.Setenv("AWS_SECRET_ACCESS_KEY", body.AuthSecret)
-	os.Setenv("AWS_SESSION_TOKEN", body.SessionToken)
+	uploadCredentials := credentials.NewStaticCredentials(
+		body.AuthKey, body.AuthSecret, body.SessionToken)
 
-	//Clear credentials after use
-	defer os.Setenv("AWS_ACCESS_KEY_ID", "")
-	defer os.Setenv("AWS_SECRET_ACCESS_KEY", "")
-
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(body.Region)},
-	)
+	s3Session, err := session.NewSession(&aws.Config{
+		Region:      aws.String(body.Region),
+		Credentials: uploadCredentials,}, )
 
 	if err != nil {
-		return errors.New("Unable to create a S3 session due to due to '" + err.Error() + "'")
+		return errors.New("Unable to create a S3 s3Session due to due to '" + err.Error() + "'")
 	}
 
-	var uploader = s3manager.NewUploader(sess)
+	var uploader = s3manager.NewUploader(s3Session)
 
 	_, err = uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(body.Bucket),
@@ -59,19 +54,11 @@ func DownloadFile(filename string, body S3Permission) error {
 	}
 	defer file.Close()
 
-	// -- Creating downloadSession, service client and uploader --
-	os.Setenv("AWS_ACCESS_KEY_ID", body.AuthKey)
-	os.Setenv("AWS_SECRET_ACCESS_KEY", body.AuthSecret)
-	os.Setenv("AWS_SESSION_TOKEN", body.SessionToken)
-
-	//Clear credentials after use
-	defer os.Setenv("AWS_ACCESS_KEY_ID", "")
-	defer os.Setenv("AWS_SECRET_ACCESS_KEY", "")
-	defer os.Setenv("AWS_SESSION_TOKEN", "")
-
+	downloadCredentials := credentials.NewStaticCredentials(body.AuthKey, body.AuthSecret, body.SessionToken)
 
 	downloadSession, err := session.NewSession(&aws.Config{
-		Region: aws.String(body.Region)},
+		Region:      aws.String(body.Region),
+		Credentials: downloadCredentials},
 	)
 
 	if err != nil {
