@@ -36,7 +36,11 @@ func Download(url, depth string, requestBody PackageRequestBody) {
 		return
 	}
 
-	s3.DownloadFile(requestBody.Name, *permission)
+	err := s3.DownloadFile(requestBody.Name, *permission)
+
+	if err != nil {
+		panic(err)
+	}
 
 	destination, err := os.Getwd()
 
