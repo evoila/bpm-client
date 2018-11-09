@@ -11,7 +11,7 @@ import (
 	"strconv"
 )
 
-func PutMetaData(url string, data MetaData, force bool) (*S3Permission, *MetaData) {
+func RequestPermission(url string, data MetaData, force bool) (*S3Permission, *MetaData) {
 
 	client := &Client{}
 
@@ -21,7 +21,7 @@ func PutMetaData(url string, data MetaData, force bool) (*S3Permission, *MetaDat
 		panic(err)
 	}
 
-	request, err := NewRequest("PUT", BuildPath([]string{url, "upload/package?force=" + strconv.FormatBool(force)}), NewBuffer(body))
+	request, err := NewRequest("GET", BuildPath([]string{url, "upload/permission?force=" + strconv.FormatBool(force)}), NewBuffer(body))
 	request.Header.Set("Content-Type", "application/json")
 
 	response, err := client.Do(request)
@@ -57,6 +57,22 @@ func PutMetaData(url string, data MetaData, force bool) (*S3Permission, *MetaDat
 	} else {
 		panic("A unexpected response code: " + strconv.Itoa(response.StatusCode))
 	}
+}
+
+func PutMetaData(url, location string) {
+
+	path := BuildPath([]string{url, "package?location=" + location})
+	request, err := NewRequest("PUT", path, nil)
+
+	request.Header.Set("Content-Type", "application/json")
+
+	client := &Client{}
+	response, err := client.Do(request)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer response.Body.Close()
 }
 
 func GetMetaData(url, vendor, name, version string) *MetaData {
