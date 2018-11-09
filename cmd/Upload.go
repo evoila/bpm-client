@@ -17,7 +17,13 @@ var set = NewStringSet()
 
 func RunUpdateIfPackagePresentUploadIfNot(url, packageName, vendor string) {
 
-	specFile := ReadSpec("./packages/" + packageName)
+	specFile, errMessage := ReadSpec(packageName)
+
+	if errMessage != nil {
+		fmt.Println(errMessage)
+		return
+	}
+
 	metaData := GetMetaData(url, vendor, packageName, specFile.Version)
 
 	if metaData == nil {
@@ -49,10 +55,20 @@ func upload(url, packageName, vendor, depth string, update bool) {
 
 	fmt.Println(depth + "├─ Packing: " + packageName)
 
-	specFile := ReadSpec("./packages/" + packageName)
+	specFile, errMessage := ReadSpec(packageName)
+
+	if errMessage != nil {
+		fmt.Println(depth + "└─  " + *errMessage)
+		return
+	}
+
 	pack := "./" + packageName + ".bpm"
 
-	dependencies := readDependencies(specFile, vendor)
+	dependencies, errMessage := readDependencies(*specFile, vendor)
+
+	if errMessage != nil {
+		fmt.Println(depth + "└─  Error in Dependency: " + *errMessage)
+	}
 
 	result := MetaData{
 		Name:         packageName,
@@ -62,10 +78,10 @@ func upload(url, packageName, vendor, depth string, update bool) {
 		Files:        specFile.Files,
 		Dependencies: dependencies}
 
-	var permission, oldMeta = PutMetaData(url, result, false)
+	var permission, oldMeta = RequestPermission(url, result, false)
 
 	if update && oldMeta != nil && askUser(*oldMeta, depth) {
-		permission, _ = PutMetaData(url, result, true)
+		permission, _ = RequestPermission(url, result, true)
 	}
 
 	if permission != nil {
@@ -98,6 +114,7 @@ func upload(url, packageName, vendor, depth string, update bool) {
 			panic(err)
 		}
 
+		PutMetaData(url, permission.S3location)
 		fmt.Println(depth + "├─ Successfully uploaded")
 
 		for _, dependency := range result.Dependencies {
@@ -160,22 +177,27 @@ func acceptInput(text, depth string) bool {
 			return true
 		}
 	}
-
 	fmt.Print(depth + "│  Please enter yes / y or no / n	Answer: ")
+
 	return false
 }
 
-func readDependencies(specFile SpecFile, vendor string) []Dependency {
+func readDependencies(specFile SpecFile, vendor string) ([]Dependency, *string) {
 
 	var dependencies []Dependency
 
 	for _, d := range specFile.Dependencies {
-		dependencySpec := ReadSpec("./packages/" + d)
+		dependencySpec, errMessage := ReadSpec(d)
+
+		if errMessage != nil {
+			return nil, errMessage
+		}
 
 		dependencies = append(dependencies, Dependency{
 			Name:    dependencySpec.Name,
 			Version: dependencySpec.Version,
 			Vendor:  vendor}, )
 	}
-	return dependencies
+
+	return dependencies, nil
 }
