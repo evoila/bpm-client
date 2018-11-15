@@ -3,15 +3,16 @@ package rest
 import (
 	. "bytes"
 	. "encoding/json"
-	. "github.com/evoila/BPM-Client/helpers"
-	. "github.com/evoila/BPM-Client/model"
 	"io/ioutil"
 	"log"
 	. "net/http"
 	"strconv"
+
+	. "github.com/evoila/BPM-Client/helpers"
+	. "github.com/evoila/BPM-Client/model"
 )
 
-func PutMetaData(url string, data MetaData, force bool) (*S3Permission, *MetaData) {
+func RequestPermission(data MetaData, force bool, config *Config) (*S3Permission, *MetaData) {
 
 	client := &Client{}
 
@@ -21,8 +22,9 @@ func PutMetaData(url string, data MetaData, force bool) (*S3Permission, *MetaDat
 		panic(err)
 	}
 
-	request, err := NewRequest("PUT", BuildPath([]string{url, "upload/package?force=" + strconv.FormatBool(force)}), NewBuffer(body))
+	request, err := NewRequest("POST", BuildPath([]string{config.Url, "upload/permission?force=" + strconv.FormatBool(force)}), NewBuffer(body))
 	request.Header.Set("Content-Type", "application/json")
+	request.SetBasicAuth(config.Username, config.Password)
 
 	response, err := client.Do(request)
 	if err != nil {
@@ -54,14 +56,33 @@ func PutMetaData(url string, data MetaData, force bool) (*S3Permission, *MetaDat
 		err = Unmarshal(responseBody, &metaData)
 
 		return nil, &metaData
+	} else if response.StatusCode == 401 {
+		return nil, nil
+
 	} else {
 		panic("A unexpected response code: " + strconv.Itoa(response.StatusCode))
 	}
 }
 
-func GetMetaData(url, vendor, name, version string) *MetaData {
+func PutMetaData(url, location string) {
 
-	path := BuildPath([]string{url, "package", vendor, name, version})
+	path := BuildPath([]string{url, "package?location=" + location})
+	request, err := NewRequest("PUT", path, nil)
+
+	request.Header.Set("Content-Type", "application/json")
+
+	client := &Client{}
+	response, err := client.Do(request)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer response.Body.Close()
+}
+
+func GetMetaData(vendor, name, version string, config *Config) *MetaData {
+
+	path := BuildPath([]string{config.Url, "package", vendor, name, version})
 
 	resp, err := Get(path)
 
@@ -87,9 +108,9 @@ func GetMetaData(url, vendor, name, version string) *MetaData {
 	}
 }
 
-func GetMetaDataListForPackageName(url, name string) []MetaData {
+func GetMetaDataListForPackageName(name string, config *Config) []MetaData {
 
-	path := BuildPath([]string{url, "package?name=" + name})
+	path := BuildPath([]string{config.Url, "package?name=" + name})
 
 	response, err := Get(path)
 
@@ -111,9 +132,9 @@ func GetMetaDataListForPackageName(url, name string) []MetaData {
 	return metaData
 }
 
-func GetDownloadPermission(url string, request PackageRequestBody) *S3Permission {
+func GetDownloadPermission(config *Config, request PackageRequestBody) *S3Permission {
 
-	resp, err := Get(BuildPath([]string{url, "download", request.Vendor, request.Name, request.Version}))
+	resp, err := Get(BuildPath([]string{config.Url, "download", request.Vendor, request.Name, request.Version}))
 
 	if err != nil {
 		panic(err)

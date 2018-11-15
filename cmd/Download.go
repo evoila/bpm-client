@@ -10,7 +10,7 @@ import (
 	"os"
 )
 
-func Download(url, depth string, requestBody PackageRequestBody) {
+func Download(depth string, requestBody PackageRequestBody, config *Config) {
 
 	stat, _ := os.Stat(BuildPath([]string{"packages", requestBody.Name}))
 
@@ -21,8 +21,8 @@ func Download(url, depth string, requestBody PackageRequestBody) {
 
 	fmt.Println(depth + "├─ Downloading package: ")
 
-	metaData := rest.GetMetaData(url, requestBody.Vendor, requestBody.Name, requestBody.Version)
-	permission := rest.GetDownloadPermission(url, requestBody)
+	metaData := rest.GetMetaData(requestBody.Vendor, requestBody.Name, requestBody.Version, config)
+	permission := rest.GetDownloadPermission(config, requestBody)
 
 	if metaData == nil {
 		fmt.Println(depth + "└─ Package '" + requestBody.Name + "' does not exist.")
@@ -72,7 +72,7 @@ func Download(url, depth string, requestBody PackageRequestBody) {
 			Vendor:  dependency.Vendor}
 		fmt.Println(depth + "├─ Handling dependency")
 
-		Download(url, depth+"│  ", dependencyRequest)
+		Download(depth+"│  ", dependencyRequest, config)
 	}
 
 	fmt.Println(depth + "└─ Finished package: " + requestBody.Name)

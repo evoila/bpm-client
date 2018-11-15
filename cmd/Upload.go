@@ -15,30 +15,43 @@ import (
 
 var set = NewStringSet()
 
-func RunUpdateIfPackagePresentUploadIfNot(url, packageName, vendor string) {
+func RunUpdateIfPackagePresentUploadIfNot(packageName string, config *Config) {
 
-	specFile := ReadSpec("./packages/" + packageName)
-	metaData := GetMetaData(url, vendor, packageName, specFile.Version)
+	specFile, errMessage := ReadSpec(packageName)
+
+	if errMessage != nil {
+		fmt.Println(errMessage)
+		return
+	}
+
+	metaData := GetMetaData(specFile.Vendor, packageName, specFile.Version, config)
 
 	if metaData == nil {
 		fmt.Println("Specified package not found. Uploading instead of updating.")
 
-		CheckIfAlreadyPresentAndUpload(url, packageName, vendor)
+		CheckIfAlreadyPresentAndUpload(packageName, config)
 	} else {
-		upload(url, packageName, vendor, "", true)
+		upload(packageName, specFile.Vendor, "", true, config)
 	}
 }
 
-func CheckIfAlreadyPresentAndUpload(url, packageName, vendor string) {
+func CheckIfAlreadyPresentAndUpload(packageName string, config *Config) {
 
-	metaData := GetMetaDataListForPackageName(url, packageName)
+	specFile, errMessage := ReadSpec(packageName)
+
+	if errMessage != nil {
+		fmt.Println(errMessage)
+		return
+	}
+
+	metaData := GetMetaDataListForPackageName(packageName, config)
 
 	if len(metaData) < 1 || askOperatorForProcedure(metaData) {
-		upload(url, packageName, vendor, "", false)
+		upload(packageName, specFile.Vendor, "", false, config)
 	}
 }
 
-func upload(url, packageName, vendor, depth string, update bool) {
+func upload(packageName, vendor, depth string, update bool, config *Config) {
 
 	if set.Get(packageName) {
 		fmt.Println(depth + "└─  Dependency " + packageName + " already handled")
@@ -49,10 +62,20 @@ func upload(url, packageName, vendor, depth string, update bool) {
 
 	fmt.Println(depth + "├─ Packing: " + packageName)
 
-	specFile := ReadSpec("./packages/" + packageName)
+	specFile, errMessage := ReadSpec(packageName)
+
+	if errMessage != nil {
+		fmt.Println(depth + "└─  " + *errMessage)
+		return
+	}
+
 	pack := "./" + packageName + ".bpm"
 
-	dependencies := readDependencies(specFile, vendor)
+	dependencies, errMessage := readDependencies(*specFile, vendor)
+
+	if errMessage != nil {
+		fmt.Println(depth + "└─  Error in Dependency: " + *errMessage)
+	}
 
 	result := MetaData{
 		Name:         packageName,
@@ -62,10 +85,10 @@ func upload(url, packageName, vendor, depth string, update bool) {
 		Files:        specFile.Files,
 		Dependencies: dependencies}
 
-	var permission, oldMeta = PutMetaData(url, result, false)
+	var permission, oldMeta = RequestPermission(result, false, config)
 
 	if update && oldMeta != nil && askUser(*oldMeta, depth) {
-		permission, _ = PutMetaData(url, result, true)
+		permission, _ = RequestPermission(result, true, config)
 	}
 
 	if permission != nil {
@@ -98,18 +121,24 @@ func upload(url, packageName, vendor, depth string, update bool) {
 			panic(err)
 		}
 
+		PutMetaData(config.Url, permission.S3location)
 		fmt.Println(depth + "├─ Successfully uploaded")
 
 		for _, dependency := range result.Dependencies {
 			fmt.Println(depth + "├─ Handling dependency")
 
-			upload(url, dependency.Name, dependency.Vendor, "│  "+depth, update)
+			upload(dependency.Name, dependency.Vendor, "│  "+depth, update, config)
 		}
 
 		fmt.Println(depth + "└─ Finished packing: " + packageName)
 
 	} else {
-		fmt.Println(depth + "└─ Skipped. Already present. Use update if you want to replace it")
+		if oldMeta != nil {
+			fmt.Println(depth + "└─ Skipped. Already present. Use update if you want to replace it")
+		} else {
+			fmt.Println(depth + "└─ Skipped. Not a Member of the Vendor: " + result.Vendor)
+
+		}
 	}
 }
 
@@ -160,22 +189,27 @@ func acceptInput(text, depth string) bool {
 			return true
 		}
 	}
-
 	fmt.Print(depth + "│  Please enter yes / y or no / n	Answer: ")
+
 	return false
 }
 
-func readDependencies(specFile SpecFile, vendor string) []Dependency {
+func readDependencies(specFile SpecFile, vendor string) ([]Dependency, *string) {
 
 	var dependencies []Dependency
 
 	for _, d := range specFile.Dependencies {
-		dependencySpec := ReadSpec("./packages/" + d)
+		dependencySpec, errMessage := ReadSpec(d)
+
+		if errMessage != nil {
+			return nil, errMessage
+		}
 
 		dependencies = append(dependencies, Dependency{
 			Name:    dependencySpec.Name,
 			Version: dependencySpec.Version,
 			Vendor:  vendor}, )
 	}
-	return dependencies
+
+	return dependencies, nil
 }

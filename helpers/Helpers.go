@@ -34,11 +34,13 @@ func MergeMetaDataList(l1, l2 []MetaData) []MetaData {
 	return l1
 }
 
-func ReadSpec(specLocation string) SpecFile {
+func ReadSpec(packageName string) (*SpecFile, *string) {
 
-	yamlFile, err := ioutil.ReadFile(specLocation + "/spec")
+	yamlFile, err := ioutil.ReadFile("./packages/" + packageName + "/spec")
 	if err != nil {
-		panic(err)
+		message := "Did not find a spec file. Is '" + packageName + "' a valid package?"
+
+		return nil, &message
 	}
 
 	var specFile SpecFile
@@ -46,10 +48,12 @@ func ReadSpec(specLocation string) SpecFile {
 	err = Unmarshal(yamlFile, &specFile)
 
 	if err != nil {
-		panic(err)
+		message := "'" + packageName + "' does not contain a valid spec file."
+
+		return nil, &message
 	}
 
-	return specFile
+	return &specFile, nil
 }
 
 func ReadConfig(configLocation string) Config {
