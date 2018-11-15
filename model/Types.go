@@ -48,7 +48,7 @@ func (m MetaData) String(depth string) string {
 	if (Stemcell{}) != m.Stemcell {
 		stemcellString = m.Stemcell.stringFormat(depth)
 	} else {
-		stemcellString = depth + "│  Stemcell:       Not specified"
+		stemcellString = depth + "│  Stemcell:       Not specified \n"
 	}
 
 	return depth + "│  Name:           " + m.Name + "\n" +
@@ -87,9 +87,9 @@ func (d Dependency) String() string {
 }
 
 type SpecFile struct {
-	Name, Version       string
-	Stemcell            Stemcell
-	Files, Dependencies []string
+	Name, Version, Vendor string
+	Stemcell              Stemcell
+	Files, Dependencies   []string
 }
 
 type BackupResponse struct {
@@ -115,7 +115,7 @@ type S3Permission struct {
 }
 
 type Config struct {
-	Url, Port, Vendor string
+	Url, Port, Vendor, Username, Password string
 }
 
 type PackageRequestBody struct {

@@ -15,7 +15,7 @@ import (
 
 var set = NewStringSet()
 
-func RunUpdateIfPackagePresentUploadIfNot(url, packageName, vendor string) {
+func RunUpdateIfPackagePresentUploadIfNot(packageName string, config *Config) {
 
 	specFile, errMessage := ReadSpec(packageName)
 
@@ -24,27 +24,34 @@ func RunUpdateIfPackagePresentUploadIfNot(url, packageName, vendor string) {
 		return
 	}
 
-	metaData := GetMetaData(url, vendor, packageName, specFile.Version)
+	metaData := GetMetaData(specFile.Vendor, packageName, specFile.Version, config)
 
 	if metaData == nil {
 		fmt.Println("Specified package not found. Uploading instead of updating.")
 
-		CheckIfAlreadyPresentAndUpload(url, packageName, vendor)
+		CheckIfAlreadyPresentAndUpload(packageName, config)
 	} else {
-		upload(url, packageName, vendor, "", true)
+		upload(packageName, specFile.Vendor, "", true, config)
 	}
 }
 
-func CheckIfAlreadyPresentAndUpload(url, packageName, vendor string) {
+func CheckIfAlreadyPresentAndUpload(packageName string, config *Config) {
 
-	metaData := GetMetaDataListForPackageName(url, packageName)
+	specFile, errMessage := ReadSpec(packageName)
+
+	if errMessage != nil {
+		fmt.Println(errMessage)
+		return
+	}
+
+	metaData := GetMetaDataListForPackageName(packageName, config)
 
 	if len(metaData) < 1 || askOperatorForProcedure(metaData) {
-		upload(url, packageName, vendor, "", false)
+		upload(packageName, specFile.Vendor, "", false, config)
 	}
 }
 
-func upload(url, packageName, vendor, depth string, update bool) {
+func upload(packageName, vendor, depth string, update bool, config *Config) {
 
 	if set.Get(packageName) {
 		fmt.Println(depth + "└─  Dependency " + packageName + " already handled")
@@ -78,10 +85,10 @@ func upload(url, packageName, vendor, depth string, update bool) {
 		Files:        specFile.Files,
 		Dependencies: dependencies}
 
-	var permission, oldMeta = RequestPermission(url, result, false)
+	var permission, oldMeta = RequestPermission(result, false, config)
 
 	if update && oldMeta != nil && askUser(*oldMeta, depth) {
-		permission, _ = RequestPermission(url, result, true)
+		permission, _ = RequestPermission(result, true, config)
 	}
 
 	if permission != nil {
@@ -114,19 +121,24 @@ func upload(url, packageName, vendor, depth string, update bool) {
 			panic(err)
 		}
 
-		PutMetaData(url, permission.S3location)
+		PutMetaData(config.Url, permission.S3location)
 		fmt.Println(depth + "├─ Successfully uploaded")
 
 		for _, dependency := range result.Dependencies {
 			fmt.Println(depth + "├─ Handling dependency")
 
-			upload(url, dependency.Name, dependency.Vendor, "│  "+depth, update)
+			upload(dependency.Name, dependency.Vendor, "│  "+depth, update, config)
 		}
 
 		fmt.Println(depth + "└─ Finished packing: " + packageName)
 
 	} else {
-		fmt.Println(depth + "└─ Skipped. Already present. Use update if you want to replace it")
+		if oldMeta != nil {
+			fmt.Println(depth + "└─ Skipped. Already present. Use update if you want to replace it")
+		} else {
+			fmt.Println(depth + "└─ Skipped. Not a Member of the Vendor: " + result.Vendor)
+
+		}
 	}
 }
 

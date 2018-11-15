@@ -18,7 +18,7 @@ var rootCmd = &cobra.Command{
 }
 
 var config Config
-var pack, version, endpoint string
+var pack, version string
 var update bool
 
 func init() {
@@ -31,9 +31,9 @@ func init() {
 			log.Println("Begin upload.")
 
 			if update {
-				RunUpdateIfPackagePresentUploadIfNot(endpoint, pack, config.Vendor)
+				RunUpdateIfPackagePresentUploadIfNot(pack, &config)
 			} else {
-				CheckIfAlreadyPresentAndUpload(endpoint, pack, config.Vendor)
+				CheckIfAlreadyPresentAndUpload(pack, &config)
 			}
 
 			log.Println("Finished upload.")
@@ -54,7 +54,7 @@ func init() {
 				Vendor:  config.Vendor,
 				Version: version}
 
-			Download(endpoint, "", requestBody)
+			Download("", requestBody, &config)
 		},
 	}
 	downloadCmd.Flags().StringVarP(&pack, "package", "p", "", "The name of the package to upload")
@@ -70,7 +70,6 @@ func setupConfig() {
 	configLocation := os.Getenv("BOSH_PACKAGE_MANAGER_CONFIG")
 
 	config = helpers.ReadConfig(configLocation)
-	endpoint = config.Url + ":" + config.Port
 	helpers.MoveToReleaseDir()
 }
 
