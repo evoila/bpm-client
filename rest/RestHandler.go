@@ -33,34 +33,40 @@ func RequestPermission(data MetaData, force bool, config *Config) (*S3Permission
 
 	defer response.Body.Close()
 
-	if response.StatusCode == 202 {
+	switch response.StatusCode {
 
-		responseBody, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			log.Fatal(err)
+	case 202:
+		{
+			responseBody, err := ioutil.ReadAll(response.Body)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			var converted S3Permission
+			err = Unmarshal(responseBody, &converted)
+
+			return &converted, nil
 		}
+	case 409:
+		{
+			responseBody, err := ioutil.ReadAll(response.Body)
+			if err != nil {
+				log.Fatal(err)
+			}
 
-		var converted S3Permission
-		err = Unmarshal(responseBody, &converted)
+			var metaData MetaData
+			err = Unmarshal(responseBody, &metaData)
 
-		return &converted, nil
-
-	} else if response.StatusCode == 409 {
-
-		responseBody, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			log.Fatal(err)
+			return nil, &metaData
 		}
-
-		var metaData MetaData
-		err = Unmarshal(responseBody, &metaData)
-
-		return nil, &metaData
-	} else if response.StatusCode == 401 {
-		return nil, nil
-
-	} else {
-		panic("A unexpected response code: " + strconv.Itoa(response.StatusCode))
+	case 401:
+		{
+			return nil, nil
+		}
+	default:
+		{
+			panic("A unexpected response code: " + strconv.Itoa(response.StatusCode))
+		}
 	}
 }
 

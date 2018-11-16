@@ -137,7 +137,6 @@ func upload(packageName, vendor, depth string, update bool, config *Config) {
 			fmt.Println(depth + "└─ Skipped. Already present. Use update if you want to replace it")
 		} else {
 			fmt.Println(depth + "└─ Skipped. Not a Member of the Vendor: " + result.Vendor)
-
 		}
 	}
 }
