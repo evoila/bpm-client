@@ -14,10 +14,10 @@ type ResponseBody struct {
 }
 
 type MetaData struct {
-	Name, Version, Vendor, FilePath, UploadDate string
-	Files                                       []string
-	Stemcell                                    Stemcell
-	Dependencies                                []Dependency
+	Name, Version, Vendor, FilePath, UploadDate, Description string
+	Files                                                    []string
+	Stemcell                                                 Stemcell
+	Dependencies                                             []Dependency
 }
 
 type Dependency struct {
@@ -87,9 +87,9 @@ func (d Dependency) String() string {
 }
 
 type SpecFile struct {
-	Name, Version, Vendor string
-	Stemcell              Stemcell
-	Files, Dependencies   []string
+	Name, Version, Vendor, Description string
+	Stemcell                           Stemcell
+	Files, Dependencies                []string
 }
 
 type BackupResponse struct {
