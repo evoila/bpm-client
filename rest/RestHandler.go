@@ -88,9 +88,19 @@ func PutMetaData(url, location string) {
 
 func GetMetaData(vendor, name, version string, config *Config) *MetaData {
 
-	path := BuildPath([]string{config.Url, "package", vendor, name, version})
+	client := &Client{}
 
-	resp, err := Get(path)
+	request, err := NewRequest("GET", BuildPath([]string{config.Url, "package", vendor, name, version}), nil)
+	request.Header.Set("Content-Type", "application/json")
+
+	if config.Username != "" && config.Password != "" {
+		request.SetBasicAuth(config.Username, config.Password)
+	}
+
+	resp, err := client.Do(request)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	if err != nil {
 		panic(err)
@@ -138,9 +148,19 @@ func GetMetaDataListForPackageName(name string, config *Config) []MetaData {
 	return metaData
 }
 
-func GetDownloadPermission(config *Config, request PackageRequestBody) *S3Permission {
+func GetDownloadPermission(config *Config, requestBody PackageRequestBody) *S3Permission {
 
-	resp, err := Get(BuildPath([]string{config.Url, "download", request.Vendor, request.Name, request.Version}))
+	path := BuildPath([]string{config.Url, "download", requestBody.Vendor, requestBody.Name, requestBody.Version})
+	client := &Client{}
+
+	request, err := NewRequest("GET", path, nil)
+	request.Header.Set("Content-Type", "application/json")
+
+	if config.Username != "" && config.Password != "" {
+		request.SetBasicAuth(config.Username, config.Password)
+	}
+
+	resp, err := client.Do(request)
 
 	if err != nil {
 		panic(err)
