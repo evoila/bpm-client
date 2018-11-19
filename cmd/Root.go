@@ -18,7 +18,7 @@ var rootCmd = &cobra.Command{
 }
 
 var config Config
-var pack, version string
+var pack, version, vendor string
 var update bool
 
 func init() {
@@ -51,15 +51,17 @@ func init() {
 
 			requestBody := PackageRequestBody{
 				Name:    pack,
-				Vendor:  config.Vendor,
+				Vendor:  vendor,
 				Version: version}
 
 			Download("", requestBody, &config)
 		},
 	}
-	downloadCmd.Flags().StringVarP(&pack, "package", "p", "", "The name of the package to upload")
+	downloadCmd.Flags().StringVarP(&pack, "package", "p", "", "The name of the package")
 	downloadCmd.MarkFlagRequired("package")
-	downloadCmd.Flags().StringVarP(&version, "version", "v", "", "Version of the package to upload")
+	downloadCmd.Flags().StringVarP(&vendor, "vendor", "v", "", "The name of the vendor")
+	downloadCmd.MarkFlagRequired("package")
+	downloadCmd.Flags().StringVarP(&version, "version", "s", "", "Version of the package")
 	downloadCmd.MarkFlagRequired("version")
 
 	rootCmd.AddCommand(uploadCmd)
