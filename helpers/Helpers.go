@@ -34,7 +34,7 @@ func MergeMetaDataList(l1, l2 []MetaData) []MetaData {
 	return l1
 }
 
-func ReadSpec(packageName string) (*SpecFile, *string) {
+func ReadAndValidateSpec(packageName string) (*SpecFile, *string) {
 
 	yamlFile, err := ioutil.ReadFile("./packages/" + packageName + "/spec")
 	if err != nil {
@@ -46,6 +46,12 @@ func ReadSpec(packageName string) (*SpecFile, *string) {
 	var specFile SpecFile
 
 	err = Unmarshal(yamlFile, &specFile)
+
+	if specFile.Name == "" || specFile.Version == "" || specFile.Vendor == ""{
+		message := "The Specfile needs to specify package, version and vendor."
+		return nil, &message
+	}
+
 
 	if err != nil {
 		message := "'" + packageName + "' does not contain a valid spec file."

@@ -17,7 +17,7 @@ var set = NewStringSet()
 
 func RunUpdateIfPackagePresentUploadIfNot(packageName string, config *Config) {
 
-	specFile, errMessage := ReadSpec(packageName)
+	specFile, errMessage := ReadAndValidateSpec(packageName)
 
 	if errMessage != nil {
 		fmt.Println(errMessage)
@@ -37,7 +37,7 @@ func RunUpdateIfPackagePresentUploadIfNot(packageName string, config *Config) {
 
 func CheckIfAlreadyPresentAndUpload(packageName string, config *Config) {
 
-	specFile, errMessage := ReadSpec(packageName)
+	specFile, errMessage := ReadAndValidateSpec(packageName)
 
 	if errMessage != nil {
 		fmt.Println(errMessage)
@@ -62,7 +62,7 @@ func upload(packageName, vendor, depth string, update bool, config *Config) {
 
 	fmt.Println(depth + "├─ Packing: " + packageName)
 
-	specFile, errMessage := ReadSpec(packageName)
+	specFile, errMessage := ReadAndValidateSpec(packageName)
 
 	if errMessage != nil {
 		fmt.Println(depth + "└─  " + *errMessage)
@@ -199,7 +199,7 @@ func readDependencies(specFile SpecFile, vendor string) ([]Dependency, *string) 
 	var dependencies []Dependency
 
 	for _, d := range specFile.Dependencies {
-		dependencySpec, errMessage := ReadSpec(d)
+		dependencySpec, errMessage := ReadAndValidateSpec(d)
 
 		if errMessage != nil {
 			return nil, errMessage
