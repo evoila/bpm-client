@@ -14,10 +14,10 @@ type ResponseBody struct {
 }
 
 type MetaData struct {
-	Name, Version, Vendor, FilePath, UploadDate string
-	Files                                       []string
-	Stemcell                                    Stemcell
-	Dependencies                                []Dependency
+	Name, Version, Vendor, FilePath, UploadDate, Description string
+	Files                                                    []string
+	Stemcell                                                 Stemcell
+	Dependencies                                             []Dependency
 }
 
 type Dependency struct {
@@ -87,9 +87,9 @@ func (d Dependency) String() string {
 }
 
 type SpecFile struct {
-	Name, Version, Vendor string
-	Stemcell              Stemcell
-	Files, Dependencies   []string
+	Name, Version, Vendor, Description string
+	Stemcell                           Stemcell
+	Files, Dependencies                []string
 }
 
 type BackupResponse struct {
@@ -122,4 +122,16 @@ type PackageRequestBody struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
 	Vendor  string `json:"vendor"`
+}
+
+type OpenId struct {
+	AccessToken      string `json:"access_token"`
+	ExpiresIn        int    `json:"expires_in"`
+	RefreshExpiresIn int    `json:"refresh_expires_in"`
+	RefreshToken     string `json:"refresh_token"`
+	TokenType        string `json:"token_type"`
+	IdToken          string `json:"id_token"`
+	NotBeforePolicy  string `json:"not-before-policy"`
+	SessionState     string `json:"session_state"`
+	Scope            string `json:"scope"`
 }

@@ -15,43 +15,43 @@ import (
 
 var set = NewStringSet()
 
-func RunUpdateIfPackagePresentUploadIfNot(packageName string, config *Config) {
+func RunUpdateIfPackagePresentUploadIfNot(packageName string, config *Config, openid *OpenId) {
 
-	specFile, errMessage := ReadSpec(packageName)
+	specFile, errMessage := ReadAndValidateSpec(packageName)
 
 	if errMessage != nil {
 		fmt.Println(errMessage)
 		return
 	}
 
-	metaData := GetMetaData(specFile.Vendor, packageName, specFile.Version, config)
+	metaData := GetMetaData(specFile.Vendor, packageName, specFile.Version, config, openid)
 
 	if metaData == nil {
 		fmt.Println("Specified package not found. Uploading instead of updating.")
 
-		CheckIfAlreadyPresentAndUpload(packageName, config)
+		CheckIfAlreadyPresentAndUpload(packageName, config, openid)
 	} else {
-		upload(packageName, specFile.Vendor, "", true, config)
+		upload(packageName, specFile.Vendor, "", true, config, openid)
 	}
 }
 
-func CheckIfAlreadyPresentAndUpload(packageName string, config *Config) {
+func CheckIfAlreadyPresentAndUpload(packageName string, config *Config, openid *OpenId) {
 
-	specFile, errMessage := ReadSpec(packageName)
+	specFile, errMessage := ReadAndValidateSpec(packageName)
 
 	if errMessage != nil {
 		fmt.Println(errMessage)
 		return
 	}
 
-	metaData := GetMetaDataListForPackageName(packageName, config)
+	metaData := GetMetaDataListForPackageName(packageName, config, openid)
 
 	if len(metaData) < 1 || askOperatorForProcedure(metaData) {
-		upload(packageName, specFile.Vendor, "", false, config)
+		upload(packageName, specFile.Vendor, "", false, config, openid)
 	}
 }
 
-func upload(packageName, vendor, depth string, update bool, config *Config) {
+func upload(packageName, vendor, depth string, update bool, config *Config, openId *OpenId) {
 
 	if set.Get(packageName) {
 		fmt.Println(depth + "└─  Dependency " + packageName + " already handled")
@@ -62,7 +62,7 @@ func upload(packageName, vendor, depth string, update bool, config *Config) {
 
 	fmt.Println(depth + "├─ Packing: " + packageName)
 
-	specFile, errMessage := ReadSpec(packageName)
+	specFile, errMessage := ReadAndValidateSpec(packageName)
 
 	if errMessage != nil {
 		fmt.Println(depth + "└─  " + *errMessage)
@@ -83,12 +83,13 @@ func upload(packageName, vendor, depth string, update bool, config *Config) {
 		Vendor:       vendor,
 		FilePath:     pack,
 		Files:        specFile.Files,
-		Dependencies: dependencies}
+		Dependencies: dependencies,
+		Description:  specFile.Description}
 
-	var permission, oldMeta = RequestPermission(result, false, config)
+	var permission, oldMeta = RequestPermission(result, false, config, openId)
 
 	if update && oldMeta != nil && askUser(*oldMeta, depth) {
-		permission, _ = RequestPermission(result, true, config)
+		permission, _ = RequestPermission(result, true, config, openId)
 	}
 
 	if permission != nil {
@@ -121,13 +122,13 @@ func upload(packageName, vendor, depth string, update bool, config *Config) {
 			panic(err)
 		}
 
-		PutMetaData(config.Url, permission.S3location)
+		PutMetaData(config.Url, permission.S3location, openId)
 		fmt.Println(depth + "├─ Successfully uploaded")
 
 		for _, dependency := range result.Dependencies {
 			fmt.Println(depth + "├─ Handling dependency")
 
-			upload(dependency.Name, dependency.Vendor, "│  "+depth, update, config)
+			upload(dependency.Name, dependency.Vendor, "│  "+depth, update, config, openId)
 		}
 
 		fmt.Println(depth + "└─ Finished packing: " + packageName)
@@ -137,7 +138,6 @@ func upload(packageName, vendor, depth string, update bool, config *Config) {
 			fmt.Println(depth + "└─ Skipped. Already present. Use update if you want to replace it")
 		} else {
 			fmt.Println(depth + "└─ Skipped. Not a Member of the Vendor: " + result.Vendor)
-
 		}
 	}
 }
@@ -199,7 +199,7 @@ func readDependencies(specFile SpecFile, vendor string) ([]Dependency, *string) 
 	var dependencies []Dependency
 
 	for _, d := range specFile.Dependencies {
-		dependencySpec, errMessage := ReadSpec(d)
+		dependencySpec, errMessage := ReadAndValidateSpec(d)
 
 		if errMessage != nil {
 			return nil, errMessage
