@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/evoila/BPM-Client/helpers"
 	. "github.com/evoila/BPM-Client/model"
+	"github.com/evoila/BPM-Client/rest"
 	"github.com/spf13/cobra"
 	"log"
 	"os"
@@ -30,10 +31,16 @@ func init() {
 			setupConfig()
 			log.Println("Begin upload.")
 
+			openId := rest.Login(&config)
+
+			if openId == nil {
+				log.Println("└─ Unauthorized. Upload canceled.")
+			}
+
 			if update {
-				RunUpdateIfPackagePresentUploadIfNot(pack, &config)
+				RunUpdateIfPackagePresentUploadIfNot(pack, &config, openId)
 			} else {
-				CheckIfAlreadyPresentAndUpload(pack, &config)
+				CheckIfAlreadyPresentAndUpload(pack, &config, openId)
 			}
 
 			log.Println("Finished upload.")
@@ -49,23 +56,77 @@ func init() {
 		Run: func(cmd *cobra.Command, args []string) {
 			setupConfig()
 
+			var openId *OpenId
+
+			if config.Username != "" && config.Password != "" {
+				openId = rest.Login(&config)
+			}
+
 			requestBody := PackageRequestBody{
 				Name:    pack,
 				Vendor:  vendor,
 				Version: version}
 
-			Download("", requestBody, &config)
+			Download("", requestBody, &config, openId)
 		},
 	}
 	downloadCmd.Flags().StringVarP(&pack, "package", "p", "", "The name of the package")
 	downloadCmd.MarkFlagRequired("package")
 	downloadCmd.Flags().StringVarP(&vendor, "vendor", "v", "", "The name of the vendor")
-	downloadCmd.MarkFlagRequired("package")
+	downloadCmd.MarkFlagRequired("vendor")
 	downloadCmd.Flags().StringVarP(&version, "version", "s", "", "Version of the package")
 	downloadCmd.MarkFlagRequired("version")
 
+	var loginTest = &cobra.Command{
+		Use:   "login",
+		Short: "test credentials",
+		Run: func(cmd *cobra.Command, args []string) {
+			setupConfig()
+			if config.Username == "" && config.Password == "" {
+				log.Println("Please set your username and password in the config file and reference it via path variable")
+				return
+			}
+
+			log.Println("Testing login for " + config.Username)
+
+			openId := rest.Login(&config)
+
+			if openId != nil {
+				rest.AuthTest(&config, openId)
+			} else {
+				log.Println("login failed.")
+			}
+		},
+	}
+
+	var createVendor = &cobra.Command{
+		Use:   "create-vendor",
+		Short: "creates a new vendor and adds you to it as a member",
+		Run: func(cmd *cobra.Command, args []string) {
+			setupConfig()
+			if config.Username == "" && config.Password == "" {
+				log.Println("Please set your username and password in the config file and reference it via path variable")
+				return
+			}
+
+			log.Println("Testing login for " + config.Username)
+
+			openId := rest.Login(&config)
+
+			if openId != nil {
+				rest.CreateVendor(&config, vendor, openId)
+			} else {
+				log.Println("login failed.")
+			}
+		},
+	}
+	createVendor.Flags().StringVarP(&vendor, "vendor", "v", "", "The name of the vendor")
+
 	rootCmd.AddCommand(uploadCmd)
 	rootCmd.AddCommand(downloadCmd)
+	rootCmd.AddCommand(loginTest)
+	rootCmd.AddCommand(createVendor)
+
 }
 
 func setupConfig() {

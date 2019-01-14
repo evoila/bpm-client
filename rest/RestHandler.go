@@ -6,13 +6,15 @@ import (
 	"io/ioutil"
 	"log"
 	. "net/http"
+	"net/url"
 	"strconv"
+	"strings"
 
 	. "github.com/evoila/BPM-Client/helpers"
 	. "github.com/evoila/BPM-Client/model"
 )
 
-func RequestPermission(data MetaData, force bool, config *Config) (*S3Permission, *MetaData) {
+func RequestPermission(data MetaData, force bool, config *Config, openId *OpenId) (*S3Permission, *MetaData) {
 
 	client := &Client{}
 
@@ -24,7 +26,7 @@ func RequestPermission(data MetaData, force bool, config *Config) (*S3Permission
 
 	request, err := NewRequest("POST", BuildPath([]string{config.Url, "upload/permission?force=" + strconv.FormatBool(force)}), NewBuffer(body))
 	request.Header.Set("Content-Type", "application/json")
-	request.SetBasicAuth(config.Username, config.Password)
+	request.Header.Set("Authorization", "bearer "+openId.AccessToken)
 
 	response, err := client.Do(request)
 	if err != nil {
@@ -70,12 +72,15 @@ func RequestPermission(data MetaData, force bool, config *Config) (*S3Permission
 	}
 }
 
-func PutMetaData(url, location string) {
+func PutMetaData(url, location string, openId *OpenId) {
 
 	path := BuildPath([]string{url, "package?location=" + location})
 	request, err := NewRequest("PUT", path, nil)
-
 	request.Header.Set("Content-Type", "application/json")
+
+	if openId != nil {
+		request.Header.Set("Authorization", "bearer "+openId.AccessToken)
+	}
 
 	client := &Client{}
 	response, err := client.Do(request)
@@ -86,15 +91,15 @@ func PutMetaData(url, location string) {
 	defer response.Body.Close()
 }
 
-func GetMetaData(vendor, name, version string, config *Config) *MetaData {
+func GetMetaData(vendor, name, version string, config *Config, openId *OpenId) *MetaData {
 
 	client := &Client{}
 
 	request, err := NewRequest("GET", BuildPath([]string{config.Url, "package", vendor, name, version}), nil)
 	request.Header.Set("Content-Type", "application/json")
 
-	if config.Username != "" && config.Password != "" {
-		request.SetBasicAuth(config.Username, config.Password)
+	if openId != nil {
+		request.Header.Set("Authorization", "bearer "+openId.AccessToken)
 	}
 
 	resp, err := client.Do(request)
@@ -124,11 +129,15 @@ func GetMetaData(vendor, name, version string, config *Config) *MetaData {
 	}
 }
 
-func GetMetaDataListForPackageName(name string, config *Config) []MetaData {
+func GetMetaDataListForPackageName(name string, config *Config, openId *OpenId) []MetaData {
 
-	path := BuildPath([]string{config.Url, "package?name=" + name})
+	request, err := NewRequest("GET", BuildPath([]string{config.Url, "packages?name=" + name}), nil)
+	if openId != nil {
+		request.Header.Set("Authorization", "bearer "+openId.AccessToken)
+	}
 
-	response, err := Get(path)
+	client := &Client{}
+	response, err := client.Do(request)
 
 	if err != nil {
 		panic(err)
@@ -148,7 +157,7 @@ func GetMetaDataListForPackageName(name string, config *Config) []MetaData {
 	return metaData
 }
 
-func GetDownloadPermission(config *Config, requestBody PackageRequestBody) *S3Permission {
+func GetDownloadPermission(config *Config, requestBody PackageRequestBody, openId *OpenId) *S3Permission {
 
 	path := BuildPath([]string{config.Url, "download", requestBody.Vendor, requestBody.Name, requestBody.Version})
 	client := &Client{}
@@ -156,8 +165,8 @@ func GetDownloadPermission(config *Config, requestBody PackageRequestBody) *S3Pe
 	request, err := NewRequest("GET", path, nil)
 	request.Header.Set("Content-Type", "application/json")
 
-	if config.Username != "" && config.Password != "" {
-		request.SetBasicAuth(config.Username, config.Password)
+	if openId != nil {
+		request.Header.Set("Authorization", "bearer "+openId.AccessToken)
 	}
 
 	resp, err := client.Do(request)
@@ -181,6 +190,84 @@ func GetDownloadPermission(config *Config, requestBody PackageRequestBody) *S3Pe
 	}
 
 	return &permission
+}
+
+func Login(config *Config) *OpenId {
+
+	path := "http://localhost:8081/auth/realms/BOSH-Package-Manager/protocol/openid-connect/token"
+
+	data := url.Values{}
+	data.Set("client_id", "bosh-package-manager-frontend")
+	data.Set("username", config.Username)
+	data.Set("password", config.Password)
+	data.Set("grant_type", "password")
+	data.Set("scope", "openid")
+
+	request, _ := NewRequest("POST", path, strings.NewReader(data.Encode()))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	client := &Client{}
+	response, err := client.Do(request)
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer response.Body.Close()
+
+	responseBody, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var loginResponse OpenId
+	err = Unmarshal(responseBody, &loginResponse)
+
+	return &loginResponse
+}
+
+func AuthTest(config *Config, openId *OpenId) {
+
+	path := BuildPath([]string{config.Url, "auth-test"})
+	request, _ := NewRequest("GET", path, nil)
+	request.Header.Set("Authorization", "bearer "+openId.AccessToken)
+
+	client := &Client{}
+	response, err := client.Do(request)
+
+	if err != nil {
+		panic(err)
+	}
+
+	if response.StatusCode == 200 {
+		log.Println("You're authorized")
+		return
+	}
+
+	log.Println("Expected 200 but was " + strconv.Itoa(response.StatusCode))
+
+}
+
+func CreateVendor(config *Config, name string, openId *OpenId) {
+
+	path := BuildPath([]string{config.Url, "vendors?name=" + name})
+	request, _ := NewRequest("POST", path, nil)
+	request.Header.Set("Authorization", "bearer "+openId.AccessToken)
+
+	client := &Client{}
+	response, err := client.Do(request)
+
+	if err != nil {
+		panic(err)
+	}
+
+	if response.StatusCode == 200 {
+		log.Println("Vendor " + name + " created.")
+		return
+	}
+
+	log.Println("Expected 200 but was " + strconv.Itoa(response.StatusCode))
+
 }
 
 func buildBody(data MetaData) ([]byte, error) {
