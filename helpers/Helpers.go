@@ -1,6 +1,8 @@
 package helpers
 
 import (
+	"bufio"
+	"fmt"
 	. "github.com/evoila/BPM-Client/model"
 	. "gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -91,4 +93,36 @@ func MoveToReleaseDir() {
 		panic(err)
 	}
 	os.Chdir(dir)
+}
+
+func AskUser(data MetaData, depth, message string) bool {
+
+	fmt.Println(depth + "├─ Update Package")
+	fmt.Println(data.String(depth))
+
+	scanner := bufio.NewScanner(os.Stdin)
+	var text string
+	fmt.Println(depth + message)
+
+	for !AcceptInput(text, depth) {
+		scanner.Scan()
+		text = scanner.Text()
+	}
+
+	return strings.ToLower(text) == "yes" || strings.ToLower(text) == "y"
+}
+
+func AcceptInput(text, depth string) bool {
+
+	var acceptedAnswers = []string{"yes", "y", "no", "n"}
+
+	for _, s := range acceptedAnswers {
+
+		if strings.ToLower(text) == s {
+			return true
+		}
+	}
+	fmt.Print(depth + "│  Please enter yes / y or no / n	Answer: ")
+
+	return false
 }

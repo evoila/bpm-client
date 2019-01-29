@@ -88,7 +88,7 @@ func upload(packageName, vendor, depth string, update bool, config *Config, open
 
 	var permission, oldMeta = RequestPermission(result, false, config, openId)
 
-	if update && oldMeta != nil && askUser(*oldMeta, depth) {
+	if update && oldMeta != nil && AskUser(*oldMeta, depth, "│  This will alter the package with all dependencies. Are you sure? ") {
 		permission, _ = RequestPermission(result, true, config, openId)
 	}
 
@@ -142,23 +142,6 @@ func upload(packageName, vendor, depth string, update bool, config *Config, open
 	}
 }
 
-func askUser(data MetaData, depth string) bool {
-
-	fmt.Println(depth + "├─ Update Package")
-	fmt.Println(data.String(depth))
-
-	scanner := bufio.NewScanner(os.Stdin)
-	var text string
-	fmt.Println(depth + "│  This will alter the package with all dependencies. Are you sure? ")
-
-	for !acceptInput(text, depth) {
-		scanner.Scan()
-		text = scanner.Text()
-	}
-
-	return strings.ToLower(text) == "yes" || strings.ToLower(text) == "y"
-}
-
 func askOperatorForProcedure(data []MetaData) bool {
 
 	fmt.Println("│  Found fhe following packages with similar or same content")
@@ -171,27 +154,12 @@ func askOperatorForProcedure(data []MetaData) bool {
 	var text string
 
 	fmt.Println("│  Do you want to upload your version anyway? ")
-	for !acceptInput(text, "") {
+	for !AcceptInput(text, "") {
 		scanner.Scan()
 		text = scanner.Text()
 	}
 
 	return strings.ToLower(text) == "yes" || strings.ToLower(text) == "y"
-}
-
-func acceptInput(text, depth string) bool {
-
-	var acceptedAnswers = []string{"yes", "y", "no", "n"}
-
-	for _, s := range acceptedAnswers {
-
-		if strings.ToLower(text) == s {
-			return true
-		}
-	}
-	fmt.Print(depth + "│  Please enter yes / y or no / n	Answer: ")
-
-	return false
 }
 
 func readDependencies(specFile SpecFile, vendor string) ([]Dependency, *string) {

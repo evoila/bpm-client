@@ -14,10 +14,10 @@ type ResponseBody struct {
 }
 
 type MetaData struct {
-	Name, Version, Vendor, FilePath, UploadDate, Description string
-	Files                                                    []string
-	Stemcell                                                 Stemcell
-	Dependencies                                             []Dependency
+	Id, Name, Version, Vendor, FilePath, UploadDate, Description string
+	Files                                                        []string
+	Stemcell                                                     Stemcell
+	Dependencies                                                 []Dependency
 }
 
 type Dependency struct {

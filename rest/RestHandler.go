@@ -131,7 +131,7 @@ func GetMetaData(vendor, name, version string, config *Config, openId *OpenId) *
 
 func GetMetaDataListForPackageName(name string, config *Config, openId *OpenId) []MetaData {
 
-	request, err := NewRequest("GET", BuildPath([]string{config.Url, "packages?name=" + name}), nil)
+	request, err := NewRequest("GET", BuildPath([]string{config.Url, "package?name=" + name}), nil)
 	if openId != nil {
 		request.Header.Set("Authorization", "bearer "+openId.AccessToken)
 	}
@@ -192,6 +192,38 @@ func GetDownloadPermission(config *Config, requestBody PackageRequestBody, openI
 	return &permission
 }
 
+func CreateVendor(config *Config, name string, openId *OpenId) {
+
+	path := BuildPath([]string{config.Url, "vendors?name=" + name})
+	request, _ := NewRequest("POST", path, nil)
+	request.Header.Set("Authorization", "bearer "+openId.AccessToken)
+
+	client := &Client{}
+	response, err := client.Do(request)
+
+	if err != nil {
+		panic(err)
+	}
+
+	if response.StatusCode == 200 {
+		log.Println("Vendor " + name + " created.")
+		return
+	}
+
+	log.Println("Expected 200 but was " + strconv.Itoa(response.StatusCode))
+}
+
+func PublishPackage(id, accessLevel string, config *Config, openId *OpenId) bool {
+	path := BuildPath([]string{config.Url, "publish", id + "?access=" + accessLevel})
+	request, _ := NewRequest("PATCH", path, nil)
+	request.Header.Set("Authorization", "bearer "+openId.AccessToken)
+
+	client := &Client{}
+	response, _ := client.Do(request)
+
+	return response.StatusCode == 200
+}
+
 func Login(config *Config) *OpenId {
 
 	path := "http://localhost:8081/auth/realms/BOSH-Package-Manager/protocol/openid-connect/token"
@@ -241,28 +273,6 @@ func AuthTest(config *Config, openId *OpenId) {
 
 	if response.StatusCode == 200 {
 		log.Println("You're authorized")
-		return
-	}
-
-	log.Println("Expected 200 but was " + strconv.Itoa(response.StatusCode))
-
-}
-
-func CreateVendor(config *Config, name string, openId *OpenId) {
-
-	path := BuildPath([]string{config.Url, "vendors?name=" + name})
-	request, _ := NewRequest("POST", path, nil)
-	request.Header.Set("Authorization", "bearer "+openId.AccessToken)
-
-	client := &Client{}
-	response, err := client.Do(request)
-
-	if err != nil {
-		panic(err)
-	}
-
-	if response.StatusCode == 200 {
-		log.Println("Vendor " + name + " created.")
 		return
 	}
 

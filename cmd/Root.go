@@ -14,13 +14,13 @@ var rootCmd = &cobra.Command{
 	Use:   "BPM-Client",
 	Short: "CLI Tool to access Bosh Package Manager",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Please specify one command of: upload, update, download, delete, search")
+		fmt.Println("Please specify one command of: upload, update, download, delete, search, publish")
 	},
 }
 
 var config Config
-var pack, version, vendor string
-var update bool
+var pack, version, vendor, accessLevel string
+var update, force bool
 
 func init() {
 
@@ -122,10 +122,38 @@ func init() {
 	}
 	createVendor.Flags().StringVarP(&vendor, "vendor", "v", "", "The name of the vendor")
 
+	var publishPackage = &cobra.Command{
+		Use:   "publish-package",
+		Short: "publish a package you own",
+		Run: func(cmd *cobra.Command, args []string) {
+			setupConfig()
+			if config.Username == "" && config.Password == "" {
+				log.Println("Please set your username and password in the config file and reference it via path variable")
+				return
+			}
+			openId := rest.Login(&config)
+
+			if openId != nil {
+				Publish(vendor, pack, version, accessLevel, &config, openId, force)
+			} else {
+				log.Println("login failed.")
+			}
+		},
+	}
+	publishPackage.Flags().StringVarP(&vendor, "vendor", "v", "", "The name of the vendor")
+	publishPackage.Flags().StringVarP(&pack, "package", "p", "", "The name of the package")
+	publishPackage.MarkFlagRequired("package")
+	publishPackage.Flags().StringVarP(&version, "version", "s", "", "Version of the package")
+	publishPackage.MarkFlagRequired("version")
+	publishPackage.Flags().StringVarP(&accessLevel, "access-level", "a", "", "The desired access level. Either vendor or public")
+	publishPackage.MarkFlagRequired("access-level")
+	publishPackage.Flags().BoolVarP(&force, "force", "f", false, "Set this flag to skip all prompts")
+
 	rootCmd.AddCommand(uploadCmd)
 	rootCmd.AddCommand(downloadCmd)
 	rootCmd.AddCommand(loginTest)
 	rootCmd.AddCommand(createVendor)
+	rootCmd.AddCommand(publishPackage)
 
 }
 
