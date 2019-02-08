@@ -2,8 +2,10 @@ package s3
 
 import (
 	"errors"
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -12,7 +14,7 @@ import (
 	. "github.com/evoila/BPM-Client/model"
 )
 
-func UploadFile(path string, body S3Permission) error {
+func UploadFile(path, depth string, body S3Permission) error {
 
 	file, err := os.Open(path)
 	if err != nil {
@@ -32,12 +34,39 @@ func UploadFile(path string, body S3Permission) error {
 	}
 
 	var uploader = s3manager.NewUploader(s3Session)
+	//	result := make(chan *s3manager.UploadOutput)
+	//uploadErr := make(chan error)
 
-	_, err = uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(body.Bucket),
-		Key:    aws.String(body.S3location),
-		Body:   file,
-	})
+	//done := make(chan bool, 1)
+
+	var done = false
+
+	go func() {
+		_, ur := uploader.Upload(&s3manager.UploadInput{
+			Bucket: aws.String(body.Bucket),
+			Key:    aws.String(body.S3location),
+			Body:   file,
+		})
+
+		if ur != nil {
+			panic(ur)
+		}
+		done = true
+	}()
+
+	var line = depth
+	for !done {
+		fmt.Printf("\033[%dD", len(line))
+		fmt.Print(line)
+
+		time.Sleep(time.Second / 2)
+		if len(line) < 40 {
+			line = line + "="
+		} else {
+			line = depth
+		}
+		fmt.Print("\r\033[K")
+	}
 
 	if err != nil {
 		return errors.New("Failed to upload to S3 due to '" + err.Error() + "'")
@@ -46,7 +75,7 @@ func UploadFile(path string, body S3Permission) error {
 	return nil
 }
 
-func DownloadFile(filename string, body S3Permission) error {
+func DownloadFile(filename, depth string, body S3Permission) error {
 
 	file, err := os.Create(filename + ".bpm")
 	if err != nil {
@@ -67,12 +96,31 @@ func DownloadFile(filename string, body S3Permission) error {
 
 	var downloader = s3manager.NewDownloader(downloadSession)
 	//var client = s3.New(downloadSession)
+	var done = false
 
-	_, err = downloader.Download(file,
-		&s3.GetObjectInput{
-			Bucket: aws.String(body.Bucket),
-			Key:    aws.String(body.S3location),
-		})
+	go func() {
+		_, err = downloader.Download(file,
+			&s3.GetObjectInput{
+				Bucket: aws.String(body.Bucket),
+				Key:    aws.String(body.S3location),
+			})
+		done = true
+	}()
+
+	var line = depth
+	for !done {
+		fmt.Printf("\033[%dD", len(line))
+		fmt.Print(line)
+
+		time.Sleep(time.Second / 2)
+		if len(line) < 20 {
+			line = line + "="
+		} else {
+			line = depth
+		}
+		fmt.Print("\r\033[K")
+	}
+
 	if err != nil {
 		return errors.New("Failed to download the file " + filename + "  due to '" + err.Error() + "'")
 	}

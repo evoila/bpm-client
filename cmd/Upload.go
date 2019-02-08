@@ -117,7 +117,7 @@ func upload(packageName, vendor, depth string, update bool, config *Config, open
 
 		fmt.Println(depth + "├─ Upload Package")
 
-		err = UploadFile(result.FilePath, *permission)
+		err = UploadFile(result.FilePath, depth+"├─", *permission)
 		if err != nil {
 			panic(err)
 		}

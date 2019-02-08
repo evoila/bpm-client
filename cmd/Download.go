@@ -36,7 +36,8 @@ func Download(depth string, requestBody PackageRequestBody, config *Config, open
 		return
 	}
 
-	err := s3.DownloadFile(requestBody.Name, *permission)
+	err := s3.DownloadFile(requestBody.Name, depth+"├─"+
+		"  ", *permission)
 
 	if err != nil {
 		panic(err)
