@@ -36,7 +36,8 @@ func Download(depth string, requestBody PackageRequestBody, config *Config, open
 		return
 	}
 
-	err := s3.DownloadFile(requestBody.Name, *permission)
+	err := s3.DownloadFile(requestBody.Name, depth+"├─"+
+		"  ", *permission)
 
 	if err != nil {
 		panic(err)
@@ -51,17 +52,15 @@ func Download(depth string, requestBody PackageRequestBody, config *Config, open
 	fmt.Println(depth + "├─ Download successful")
 	err = UnzipPackage(requestBody.Name+".bpm", destination)
 
-	go func() {
+	if err != nil {
+		panic(err)
+	}
+
+	defer func() {
+		err = os.Remove(requestBody.Name + ".bpm")
 		if err != nil {
 			panic(err)
 		}
-
-		defer func() {
-			err = os.Remove(requestBody.Name + ".bpm")
-			if err != nil {
-				panic(err)
-			}
-		}()
 	}()
 
 	for _, dependency := range metaData.Dependencies {

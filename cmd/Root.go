@@ -14,7 +14,7 @@ var rootCmd = &cobra.Command{
 	Use:   "BPM-Client",
 	Short: "CLI Tool to access Bosh Package Manager",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Please specify one command of: upload, update, download, delete, search, publish")
+		fmt.Println("Please specify one command of: upload, update, download, delete, search, publish or create-vendor")
 	},
 }
 
