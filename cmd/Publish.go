@@ -25,8 +25,11 @@ func Publish(vendor, name, version string, accessLevelInput string, config *Conf
 
 	if force || helpers.AskUser(*meta, "", "The package "+meta.Name+" and all it's dependencies by your vendors will be published. Are you sure?") {
 
-		PublishPackage(meta.Id, *accessLevel, config, openId)
-		fmt.Println("Package published.")
+		if PublishPackage(meta.Id, *accessLevel, config, openId) {
+			fmt.Println("Package published.")
+		} else {
+			fmt.Println("Something went wrong!")
+		}
 
 	} else {
 		fmt.Println("Aborting.")
