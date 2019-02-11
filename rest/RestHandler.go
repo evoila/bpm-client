@@ -226,10 +226,9 @@ func PublishPackage(id, accessLevel string, config *Config, openId *OpenId) bool
 
 func Login(config *Config) *OpenId {
 
-	path := "http://localhost:8081/auth/realms/BOSH-Package-Manager/protocol/openid-connect/token"
-
+	path := config.KeycloakConfig.Url + "/auth/realms/" + config.KeycloakConfig.Realm + "/protocol/openid-connect/token"
 	data := url.Values{}
-	data.Set("client_id", "bosh-package-manager-frontend")
+	data.Set("client_id", config.KeycloakConfig.ClientID)
 	data.Set("username", config.Username)
 	data.Set("password", config.Password)
 	data.Set("grant_type", "password")
@@ -243,6 +242,10 @@ func Login(config *Config) *OpenId {
 
 	if err != nil {
 		panic(err)
+	}
+
+	if response.StatusCode != 200 {
+		return nil
 	}
 
 	defer response.Body.Close()

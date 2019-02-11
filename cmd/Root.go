@@ -10,6 +10,10 @@ import (
 	"os"
 )
 
+var config Config
+var pack, version, vendor, accessLevel string
+var update, force bool
+
 var rootCmd = &cobra.Command{
 	Use:   "BPM-Client",
 	Short: "CLI Tool to access Bosh Package Manager",
@@ -18,12 +22,7 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-var config Config
-var pack, version, vendor, accessLevel string
-var update, force bool
-
 func init() {
-
 	var uploadCmd = &cobra.Command{
 		Use:   "upload",
 		Short: "Upload a package to Bosh Package Manager",

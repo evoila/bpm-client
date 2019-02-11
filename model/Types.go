@@ -14,10 +14,10 @@ type ResponseBody struct {
 }
 
 type MetaData struct {
-	Id, Name, Version, Vendor, FilePath, UploadDate, Description string
-	Files                                                        []string
-	Stemcell                                                     Stemcell
-	Dependencies                                                 []Dependency
+	Id, Name, Version, Vendor, FilePath, UploadDate, Description, Size string
+	Files                                                              []string
+	Stemcell                                                           Stemcell
+	Dependencies                                                       []Dependency
 }
 
 type Dependency struct {
@@ -54,6 +54,7 @@ func (m MetaData) String(depth string) string {
 	return depth + "│  Name:           " + m.Name + "\n" +
 		depth + "│  Version:        " + m.Version + "\n" +
 		depth + "│  Vendor:         " + m.Vendor + "\n" +
+		depth + "│  Size:           " + m.Size + "\n" +
 		depth + "│  UploadDate:     " + m.UploadDate + "\n" +
 		depth + "│  Files:          " + formatStringArray(m.Files, depth) +
 		depth + "│  Dependencies:   " + formatStringArray(dependenciesAsStrings, depth) +
@@ -115,7 +116,18 @@ type S3Permission struct {
 }
 
 type Config struct {
-	Url, Port, Vendor, Username, Password string
+	Url            string         `yaml:"url"`
+	Port           string         `yaml:"port"`
+	Vendor         string         `yaml:"vendor"`
+	Username       string         `yaml:"username"`
+	Password       string         `yaml:"password"`
+	KeycloakConfig KeycloakConfig `yaml:"keycloakConfig"`
+}
+
+type KeycloakConfig struct {
+	Url      string `yaml:"url"`
+	Realm    string `yaml:"realm"`
+	ClientID string `yaml:"clientId"`
 }
 
 type PackageRequestBody struct {
