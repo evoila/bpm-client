@@ -18,6 +18,7 @@ type MetaData struct {
 	Files                                                        []string
 	Stemcell                                                     Stemcell
 	Dependencies                                                 []Dependency
+	Size                                                         int64
 }
 
 type Dependency struct {
@@ -115,7 +116,18 @@ type S3Permission struct {
 }
 
 type Config struct {
-	Url, Port, Vendor, Username, Password string
+	Url            string         `yaml:"url"`
+	Port           string         `yaml:"port"`
+	Vendor         string         `yaml:"vendor"`
+	Username       string         `yaml:"username"`
+	Password       string         `yaml:"password"`
+	KeycloakConfig KeycloakConfig `yaml:"keycloakConfig"`
+}
+
+type KeycloakConfig struct {
+	Url      string `yaml:"url"`
+	Realm    string `yaml:"realm"`
+	ClientID string `yaml:"clientId"`
 }
 
 type PackageRequestBody struct {

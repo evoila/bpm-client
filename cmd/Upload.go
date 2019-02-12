@@ -10,6 +10,7 @@ import (
 	. "github.com/evoila/BPM-Client/rest"
 	. "github.com/evoila/BPM-Client/s3"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -102,7 +103,7 @@ func upload(packageName, vendor, depth string, update bool, config *Config, open
 		filesToZip = MergeStringList(filesToZip, ScanFolderAndFilter(specFile.Files, "./blobs/"))
 		filesToZip = MergeStringList(filesToZip, ScanFolderAndFilter(specFile.Files, "./src/"))
 
-		err = ZipMe(filesToZip, pack)
+		size, err := ZipMe(filesToZip, pack)
 
 		defer func() {
 			err = os.Remove(result.FilePath)
@@ -115,14 +116,14 @@ func upload(packageName, vendor, depth string, update bool, config *Config, open
 			panic(err)
 		}
 
-		fmt.Println(depth + "├─ Upload Package")
+		fmt.Println(depth + "├─ Upload package. Size " + strconv.FormatInt(size/1000000, 10) + "MB")
 
 		err = UploadFile(result.FilePath, depth+"├─", *permission)
 		if err != nil {
 			panic(err)
 		}
 
-		PutMetaData(config.Url, permission.S3location, openId)
+		PutMetaData(config.Url, permission.S3location, openId, size)
 		fmt.Println(depth + "├─ Successfully uploaded")
 
 		for _, dependency := range result.Dependencies {

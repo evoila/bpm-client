@@ -72,9 +72,9 @@ func RequestPermission(data MetaData, force bool, config *Config, openId *OpenId
 	}
 }
 
-func PutMetaData(url, location string, openId *OpenId) {
+func PutMetaData(url, location string, openId *OpenId, size int64) {
 
-	path := BuildPath([]string{url, "package?location=" + location})
+	path := BuildPath([]string{url, "package?location=" + location + "&size=" + strconv.FormatInt(size, 10)})
 	request, err := NewRequest("PUT", path, nil)
 	request.Header.Set("Content-Type", "application/json")
 
@@ -226,10 +226,9 @@ func PublishPackage(id, accessLevel string, config *Config, openId *OpenId) bool
 
 func Login(config *Config) *OpenId {
 
-	path := "http://localhost:8081/auth/realms/BOSH-Package-Manager/protocol/openid-connect/token"
-
+	path := config.KeycloakConfig.Url + "/auth/realms/" + config.KeycloakConfig.Realm + "/protocol/openid-connect/token"
 	data := url.Values{}
-	data.Set("client_id", "bosh-package-manager-frontend")
+	data.Set("client_id", config.KeycloakConfig.ClientID)
 	data.Set("username", config.Username)
 	data.Set("password", config.Password)
 	data.Set("grant_type", "password")
@@ -243,6 +242,10 @@ func Login(config *Config) *OpenId {
 
 	if err != nil {
 		panic(err)
+	}
+
+	if response.StatusCode != 200 {
+		return nil
 	}
 
 	defer response.Body.Close()

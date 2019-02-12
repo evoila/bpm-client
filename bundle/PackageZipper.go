@@ -11,8 +11,6 @@ import (
 	"github.com/evoila/BPM-Client/helpers"
 )
 
-
-
 func ScanPackageFolder(packageName string) ([]string, error) {
 
 	return listFiles("./packages/" + packageName)
@@ -69,12 +67,12 @@ func listFiles(root string) ([]string, error) {
 	return files, nil
 }
 
-func ZipMe(filePath []string, target string) error {
+func ZipMe(filePath []string, target string) (int64, error) {
 
 	file, err := Create(target)
 
 	if err != nil {
-		return fmt.Errorf("failed to open zip for writing: %s", err)
+		return 0, fmt.Errorf("failed to open zip for writing: %s", err)
 	}
 	defer file.Close()
 
@@ -83,10 +81,16 @@ func ZipMe(filePath []string, target string) error {
 
 	for _, filename := range filePath {
 		if err := addFileToZip(filename, zipWriter); err != nil {
-			return fmt.Errorf("failed to add file %s to zip: %s", filename, err)
+			return 0, fmt.Errorf("failed to add file %s to zip: %s", filename, err)
 		}
 	}
-	return nil
+	info, err := file.Stat()
+
+	if err != nil {
+		return 0, fmt.Errorf("failed to read file info: %s", err)
+	}
+
+	return info.Size(), nil
 }
 
 func addFileToZip(filename string, zipw *zip.Writer) error {
