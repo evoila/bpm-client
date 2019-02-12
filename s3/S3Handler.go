@@ -32,12 +32,7 @@ func UploadFile(path, depth string, body S3Permission) error {
 	if err != nil {
 		return errors.New("Unable to create a S3 s3Session due to due to '" + err.Error() + "'")
 	}
-
 	var uploader = s3manager.NewUploader(s3Session)
-	//	result := make(chan *s3manager.UploadOutput)
-	//uploadErr := make(chan error)
-
-	//done := make(chan bool, 1)
 
 	var done = false
 
@@ -54,17 +49,19 @@ func UploadFile(path, depth string, body S3Permission) error {
 		done = true
 	}()
 
+	var chars = []string{"-", "/", "|", "\\"}
 	var line = depth
+	var i = 0
 	for !done {
-		fmt.Printf("\033[%dD", len(line))
+		fmt.Printf("\033[%dD", 1)
 		fmt.Print(line)
 
 		time.Sleep(time.Second / 2)
-		if len(line) < 40 {
-			line = line + "="
-		} else {
-			line = depth
-		}
+
+		line = depth + chars[i]
+
+		i = (i + 1) % 4
+
 		fmt.Print("\r\033[K")
 	}
 
@@ -95,7 +92,6 @@ func DownloadFile(filename, depth string, body S3Permission) error {
 	}
 
 	var downloader = s3manager.NewDownloader(downloadSession)
-	//var client = s3.New(downloadSession)
 	var done = false
 
 	go func() {
@@ -107,17 +103,19 @@ func DownloadFile(filename, depth string, body S3Permission) error {
 		done = true
 	}()
 
+	var chars = []string{"-", "/", "|", "\\"}
 	var line = depth
+	var i = 0
 	for !done {
-		fmt.Printf("\033[%dD", len(line))
+		fmt.Printf("\033[%dD", 1)
 		fmt.Print(line)
 
 		time.Sleep(time.Second / 2)
-		if len(line) < 20 {
-			line = line + "="
-		} else {
-			line = depth
-		}
+
+		line = depth + chars[i]
+
+		i = (i + 1) % 4
+
 		fmt.Print("\r\033[K")
 	}
 

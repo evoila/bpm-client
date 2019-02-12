@@ -72,9 +72,9 @@ func RequestPermission(data MetaData, force bool, config *Config, openId *OpenId
 	}
 }
 
-func PutMetaData(url, location string, openId *OpenId) {
+func PutMetaData(url, location string, openId *OpenId, size int64) {
 
-	path := BuildPath([]string{url, "package?location=" + location})
+	path := BuildPath([]string{url, "package?location=" + location + "&size=" + strconv.FormatInt(size, 10)})
 	request, err := NewRequest("PUT", path, nil)
 	request.Header.Set("Content-Type", "application/json")
 

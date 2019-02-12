@@ -14,10 +14,11 @@ type ResponseBody struct {
 }
 
 type MetaData struct {
-	Id, Name, Version, Vendor, FilePath, UploadDate, Description, Size string
-	Files                                                              []string
-	Stemcell                                                           Stemcell
-	Dependencies                                                       []Dependency
+	Id, Name, Version, Vendor, FilePath, UploadDate, Description string
+	Files                                                        []string
+	Stemcell                                                     Stemcell
+	Dependencies                                                 []Dependency
+	Size                                                         int64
 }
 
 type Dependency struct {
@@ -54,7 +55,6 @@ func (m MetaData) String(depth string) string {
 	return depth + "│  Name:           " + m.Name + "\n" +
 		depth + "│  Version:        " + m.Version + "\n" +
 		depth + "│  Vendor:         " + m.Vendor + "\n" +
-		depth + "│  Size:           " + m.Size + "\n" +
 		depth + "│  UploadDate:     " + m.UploadDate + "\n" +
 		depth + "│  Files:          " + formatStringArray(m.Files, depth) +
 		depth + "│  Dependencies:   " + formatStringArray(dependenciesAsStrings, depth) +

@@ -8,6 +8,7 @@ import (
 	"github.com/evoila/BPM-Client/rest"
 	"github.com/evoila/BPM-Client/s3"
 	"os"
+	"strconv"
 )
 
 func Download(depth string, requestBody PackageRequestBody, config *Config, openId *OpenId) {
@@ -18,8 +19,6 @@ func Download(depth string, requestBody PackageRequestBody, config *Config, open
 		fmt.Println(depth + "└─ Package '" + requestBody.Name + "' already set up in this release.")
 		return
 	}
-
-	fmt.Println(depth + "├─ Downloading package: ")
 
 	metaData := rest.GetMetaData(requestBody.Vendor, requestBody.Name, requestBody.Version, config, openId)
 	permission := rest.GetDownloadPermission(config, requestBody, openId)
@@ -35,6 +34,8 @@ func Download(depth string, requestBody PackageRequestBody, config *Config, open
 		fmt.Println(depth + "└─ Download permission has not been granted.")
 		return
 	}
+
+	fmt.Println(depth + "├─ Downloading " + strconv.FormatInt(metaData.Size/1000000, 10) + "MB")
 
 	err := s3.DownloadFile(requestBody.Name, depth+"├─"+
 		"  ", *permission)
