@@ -130,28 +130,24 @@ func GetMetaData(vendor, name, version string, config *Config, openId *OpenId) *
 }
 
 func GetMetaDataListForPackageName(name string, config *Config, openId *OpenId) []MetaData {
-
 	request, err := NewRequest("GET", BuildPath([]string{config.Url, "package?name=" + name}), nil)
+
 	if openId != nil {
 		request.Header.Set("Authorization", "bearer "+openId.AccessToken)
 	}
-
 	client := &Client{}
 	response, err := client.Do(request)
 
 	if err != nil {
 		panic(err)
 	}
-
 	defer response.Body.Close()
-
 	responseBody, err := ioutil.ReadAll(response.Body)
+
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	var metaData []MetaData
-
 	err = Unmarshal(responseBody, &metaData)
 
 	return metaData
@@ -205,7 +201,7 @@ func CreateVendor(config *Config, name string, openId *OpenId) {
 		panic(err)
 	}
 
-	if response.StatusCode == 200 {
+	if response.StatusCode == 201 {
 		log.Println("Vendor " + name + " created.")
 		return
 	}
@@ -222,6 +218,30 @@ func PublishPackage(id, accessLevel string, config *Config, openId *OpenId) bool
 	response, _ := client.Do(request)
 
 	return response.StatusCode == 200
+}
+
+func GetMetaDataListByVendor(config *Config, openId *OpenId, vendor string) (*PaginatedMetaData, int) {
+	path := BuildPath([]string{config.Url, "rest", "packages", vendor})
+	request, _ := NewRequest("GET", path, nil)
+
+	if openId != nil {
+		request.Header.Set("Authorization", "bearer "+openId.AccessToken)
+	}
+	client := &Client{}
+	response, _ := client.Do(request)
+
+	if response.StatusCode == 200 {
+		defer response.Body.Close()
+		responseBody, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			log.Fatal(err)
+		}
+		var paginatedMetaData PaginatedMetaData
+		err = Unmarshal(responseBody, &paginatedMetaData)
+		return &paginatedMetaData, response.StatusCode
+	}
+
+	return nil, response.StatusCode
 }
 
 func Login(config *Config) *OpenId {
@@ -280,7 +300,6 @@ func AuthTest(config *Config, openId *OpenId) {
 	}
 
 	log.Println("Expected 200 but was " + strconv.Itoa(response.StatusCode))
-
 }
 
 func buildBody(data MetaData) ([]byte, error) {

@@ -85,7 +85,8 @@ func upload(packageName, vendor, depth string, update bool, config *Config, open
 		FilePath:     pack,
 		Files:        specFile.Files,
 		Dependencies: dependencies,
-		Description:  specFile.Description}
+		Description:  specFile.Description,
+		Stemcell:     specFile.Stemcell}
 
 	var permission, oldMeta = RequestPermission(result, false, config, openId)
 

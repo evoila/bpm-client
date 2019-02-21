@@ -108,7 +108,10 @@ func init() {
 				return
 			}
 
-			log.Println("Testing login for " + config.Username)
+			if vendor == "" {
+				log.Println("Please specify a name for the new vendor.")
+				return
+			}
 
 			openId := rest.Login(&config)
 
@@ -148,12 +151,24 @@ func init() {
 	publishPackage.MarkFlagRequired("access-level")
 	publishPackage.Flags().BoolVarP(&force, "force", "f", false, "Set this flag to skip all prompts")
 
+	var searchByVendor = &cobra.Command{
+		Use:   "vendor-search",
+		Short: "search packages by a given vendor",
+		Run: func(cmd *cobra.Command, args []string) {
+			setupConfig()
+			openId := rest.Login(&config)
+
+			SearchByVendor(vendor, &config, openId)
+		},
+	}
+	searchByVendor.Flags().StringVarP(&vendor, "vendor", "v", "", "The name of the vendor")
+
 	rootCmd.AddCommand(uploadCmd)
 	rootCmd.AddCommand(downloadCmd)
 	rootCmd.AddCommand(loginTest)
 	rootCmd.AddCommand(createVendor)
 	rootCmd.AddCommand(publishPackage)
-
+	rootCmd.AddCommand(searchByVendor)
 }
 
 func setupConfig() {
