@@ -157,27 +157,16 @@ type Config struct {
 }
 
 type KeycloakConfig struct {
-	Url      string `yaml:"url"`
-	Realm    string `yaml:"realm"`
-	ClientID string `yaml:"clientId"`
+	Url          string `yaml:"url"`
+	Realm        string `yaml:"realm"`
+	ClientID     string `yaml:"clientId"`
+	ClientSecret string `yaml:"clientSecret"`
 }
 
 type PackageRequestBody struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
 	Vendor  string `json:"vendor"`
-}
-
-type OpenId struct {
-	AccessToken      string `json:"access_token"`
-	ExpiresIn        int    `json:"expires_in"`
-	RefreshExpiresIn int    `json:"refresh_expires_in"`
-	RefreshToken     string `json:"refresh_token"`
-	TokenType        string `json:"token_type"`
-	IdToken          string `json:"id_token"`
-	NotBeforePolicy  string `json:"not-before-policy"`
-	SessionState     string `json:"session_state"`
-	Scope            string `json:"scope"`
 }
 
 type Page struct {

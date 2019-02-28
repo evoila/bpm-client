@@ -3,18 +3,16 @@ package rest
 import (
 	. "bytes"
 	. "encoding/json"
+	"github.com/Nerzal/gocloak"
+	. "github.com/evoila/BPM-Client/helpers"
+	. "github.com/evoila/BPM-Client/model"
 	"io/ioutil"
 	"log"
 	. "net/http"
-	"net/url"
 	"strconv"
-	"strings"
-
-	. "github.com/evoila/BPM-Client/helpers"
-	. "github.com/evoila/BPM-Client/model"
 )
 
-func RequestPermission(data MetaData, force bool, config *Config, openId *OpenId) (*S3Permission, *MetaData) {
+func RequestPermission(data MetaData, force bool, config *Config, openId *gocloak.JWT) (*S3Permission, *MetaData) {
 
 	client := &Client{}
 
@@ -72,7 +70,7 @@ func RequestPermission(data MetaData, force bool, config *Config, openId *OpenId
 	}
 }
 
-func PutMetaData(url, location string, openId *OpenId, size int64) {
+func PutMetaData(url, location string, openId *gocloak.JWT, size int64) {
 
 	path := BuildPath([]string{url, "package?location=" + location + "&size=" + strconv.FormatInt(size, 10)})
 	request, err := NewRequest("PUT", path, nil)
@@ -91,7 +89,7 @@ func PutMetaData(url, location string, openId *OpenId, size int64) {
 	defer response.Body.Close()
 }
 
-func GetMetaData(vendor, name, version string, config *Config, openId *OpenId) *MetaData {
+func GetMetaData(vendor, name, version string, config *Config, openId *gocloak.JWT) *MetaData {
 
 	client := &Client{}
 
@@ -129,7 +127,7 @@ func GetMetaData(vendor, name, version string, config *Config, openId *OpenId) *
 	}
 }
 
-func GetMetaDataListForPackageName(name string, config *Config, openId *OpenId) []MetaData {
+func GetMetaDataListForPackageName(name string, config *Config, openId *gocloak.JWT) []MetaData {
 	request, err := NewRequest("GET", BuildPath([]string{config.Url, "package?name=" + name}), nil)
 
 	if openId != nil {
@@ -153,7 +151,7 @@ func GetMetaDataListForPackageName(name string, config *Config, openId *OpenId) 
 	return metaData
 }
 
-func GetDownloadPermission(config *Config, requestBody PackageRequestBody, openId *OpenId) *S3Permission {
+func GetDownloadPermission(config *Config, requestBody PackageRequestBody, openId *gocloak.JWT) *S3Permission {
 
 	path := BuildPath([]string{config.Url, "download", requestBody.Vendor, requestBody.Name, requestBody.Version})
 	client := &Client{}
@@ -188,11 +186,11 @@ func GetDownloadPermission(config *Config, requestBody PackageRequestBody, openI
 	return &permission
 }
 
-func CreateVendor(config *Config, name string, openId *OpenId) {
+func CreateVendor(config *Config, name string, jwt *gocloak.JWT) {
 
 	path := BuildPath([]string{config.Url, "vendors?name=" + name})
 	request, _ := NewRequest("POST", path, nil)
-	request.Header.Set("Authorization", "bearer "+openId.AccessToken)
+	request.Header.Set("Authorization", "bearer "+jwt.AccessToken)
 
 	client := &Client{}
 	response, err := client.Do(request)
@@ -209,7 +207,7 @@ func CreateVendor(config *Config, name string, openId *OpenId) {
 	log.Println("Expected 200 but was " + strconv.Itoa(response.StatusCode))
 }
 
-func PublishPackage(id, accessLevel string, config *Config, openId *OpenId) bool {
+func PublishPackage(id, accessLevel string, config *Config, openId *gocloak.JWT) bool {
 	path := BuildPath([]string{config.Url, "publish", id + "?access=" + accessLevel})
 	request, _ := NewRequest("PATCH", path, nil)
 	request.Header.Set("Authorization", "bearer "+openId.AccessToken)
@@ -220,7 +218,7 @@ func PublishPackage(id, accessLevel string, config *Config, openId *OpenId) bool
 	return response.StatusCode == 200
 }
 
-func GetMetaDataListByVendor(config *Config, openId *OpenId, vendor string) (*PaginatedMetaData, int) {
+func GetMetaDataListByVendor(config *Config, openId *gocloak.JWT, vendor string) (*PaginatedMetaData, int) {
 	path := BuildPath([]string{config.Url, "rest", "packages", vendor})
 	request, _ := NewRequest("GET", path, nil)
 
@@ -244,44 +242,48 @@ func GetMetaDataListByVendor(config *Config, openId *OpenId, vendor string) (*Pa
 	return nil, response.StatusCode
 }
 
-func Login(config *Config) *OpenId {
+func Login(config *Config) *gocloak.JWT {
 
-	path := config.KeycloakConfig.Url + "/auth/realms/" + config.KeycloakConfig.Realm + "/protocol/openid-connect/token"
-	data := url.Values{}
-	data.Set("client_id", config.KeycloakConfig.ClientID)
-	data.Set("username", config.Username)
-	data.Set("password", config.Password)
-	data.Set("grant_type", "password")
-	data.Set("scope", "openid")
+	goCloak := gocloak.NewClient(config.KeycloakConfig.Url)
 
-	request, _ := NewRequest("POST", path, strings.NewReader(data.Encode()))
-	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	token, err := goCloak.Login(config.KeycloakConfig.ClientID,
+		"826fcd31-4589-442a-8fca-754c3d648426",
+		config.KeycloakConfig.Realm,
+		config.Username,
+		config.Password)
 
-	client := &Client{}
-	response, err := client.Do(request)
+	if err != nil {
+		panic(err)
+	}
+	return token
+}
+
+func Register(config *Config, username, password string) {
+	goCloak := gocloak.NewClient(config.KeycloakConfig.Url)
+	jwt, err := goCloak.LoginClient(config.KeycloakConfig.ClientID,
+		"826fcd31-4589-442a-8fca-754c3d648426",
+		config.KeycloakConfig.Realm)
 
 	if err != nil {
 		panic(err)
 	}
 
-	if response.StatusCode != 200 {
-		return nil
-	}
+	user := gocloak.User{
+		Username: username,
+		Email:    username}
+	userId, err := goCloak.CreateUser(jwt.AccessToken, config.KeycloakConfig.Realm, user)
 
-	defer response.Body.Close()
-
-	responseBody, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
+	err = goCloak.SetPassword(jwt.AccessToken, *userId, config.KeycloakConfig.Realm, password, false)
 
-	var loginResponse OpenId
-	err = Unmarshal(responseBody, &loginResponse)
-
-	return &loginResponse
+	if err != nil {
+		panic(err)
+	}
 }
 
-func AuthTest(config *Config, openId *OpenId) {
+func AuthTest(config *Config, openId *gocloak.JWT) {
 
 	path := BuildPath([]string{config.Url, "auth-test"})
 	request, _ := NewRequest("GET", path, nil)

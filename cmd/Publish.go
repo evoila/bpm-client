@@ -2,14 +2,15 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/Nerzal/gocloak"
 	"github.com/evoila/BPM-Client/helpers"
 	. "github.com/evoila/BPM-Client/model"
 	. "github.com/evoila/BPM-Client/rest"
 	"strings"
 )
 
-func Publish(vendor, name, version string, accessLevelInput string, config *Config, openId *OpenId, force bool) {
-	var meta = GetMetaData(vendor, name, version, config, openId)
+func Publish(vendor, name, version string, accessLevelInput string, config *Config, jwt *gocloak.JWT, force bool) {
+	var meta = GetMetaData(vendor, name, version, config, jwt)
 
 	if meta == nil {
 		fmt.Println("Package not found. Aborting.")
@@ -25,7 +26,7 @@ func Publish(vendor, name, version string, accessLevelInput string, config *Conf
 
 	if force || helpers.AskUser(*meta, "", "The package "+meta.Name+" and all it's dependencies by your vendors will be published. Are you sure?") {
 
-		if PublishPackage(meta.Id, *accessLevel, config, openId) {
+		if PublishPackage(meta.Id, *accessLevel, config, jwt) {
 			fmt.Println("Package published.")
 		} else {
 			fmt.Println("Something went wrong!")

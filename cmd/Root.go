@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/Nerzal/gocloak"
 	"github.com/evoila/BPM-Client/helpers"
 	. "github.com/evoila/BPM-Client/model"
 	"github.com/evoila/BPM-Client/rest"
@@ -30,16 +31,16 @@ func init() {
 			setupConfig()
 			log.Println("Begin upload.")
 
-			openId := rest.Login(&config)
+			jwt := rest.Login(&config)
 
-			if openId == nil {
+			if jwt == nil {
 				log.Println("└─ Unauthorized. Upload canceled.")
 			}
 
 			if update {
-				RunUpdateIfPackagePresentUploadIfNot(pack, &config, openId)
+				RunUpdateIfPackagePresentUploadIfNot(pack, &config, jwt)
 			} else {
-				CheckIfAlreadyPresentAndUpload(pack, &config, openId)
+				CheckIfAlreadyPresentAndUpload(pack, &config, jwt)
 			}
 
 			log.Println("Finished upload.")
@@ -55,10 +56,10 @@ func init() {
 		Run: func(cmd *cobra.Command, args []string) {
 			setupConfig()
 
-			var openId *OpenId
+			var jwt *gocloak.JWT
 
 			if config.Username != "" && config.Password != "" {
-				openId = rest.Login(&config)
+				jwt = rest.Login(&config)
 			}
 
 			requestBody := PackageRequestBody{
@@ -66,7 +67,7 @@ func init() {
 				Vendor:  vendor,
 				Version: version}
 
-			Download("", requestBody, &config, openId)
+			Download("", requestBody, &config, jwt)
 		},
 	}
 	downloadCmd.Flags().StringVarP(&pack, "package", "p", "", "The name of the package")

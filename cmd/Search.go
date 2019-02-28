@@ -2,12 +2,13 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/Nerzal/gocloak"
 	"github.com/evoila/BPM-Client/rest"
 	"strconv"
 )
 import . "github.com/evoila/BPM-Client/model"
 
-func SearchByVendor(vendor string, config *Config, openId *OpenId) {
+func SearchByVendor(vendor string, config *Config, openId *gocloak.JWT) {
 	body, statusCode := rest.GetMetaDataListByVendor(config, openId, vendor)
 
 	if statusCode == 200 {
