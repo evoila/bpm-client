@@ -3,6 +3,7 @@ package rest
 import (
 	. "bytes"
 	. "encoding/json"
+	"fmt"
 	"github.com/Nerzal/gocloak"
 	. "github.com/evoila/BPM-Client/helpers"
 	. "github.com/evoila/BPM-Client/model"
@@ -242,53 +243,26 @@ func GetMetaDataListByVendor(config *Config, openId *gocloak.JWT, vendor string)
 	return nil, response.StatusCode
 }
 
-func Login(config *Config) *gocloak.JWT {
+func Login(config *Config) (*gocloak.JWT, error) {
 
 	goCloak := gocloak.NewClient(config.KeycloakConfig.Url)
 
 	token, err := goCloak.Login(config.KeycloakConfig.ClientID,
-		"826fcd31-4589-442a-8fca-754c3d648426",
+		"secret",
 		config.KeycloakConfig.Realm,
 		config.Username,
 		config.Password)
 
-	if err != nil {
-		panic(err)
-	}
-	return token
+	return token, err
 }
 
-func Register(config *Config, username, password string) {
-	goCloak := gocloak.NewClient(config.KeycloakConfig.Url)
-	jwt, err := goCloak.LoginClient(config.KeycloakConfig.ClientID,
-		"826fcd31-4589-442a-8fca-754c3d648426",
-		config.KeycloakConfig.Realm)
+func BackendLogin(config *Config, openId *gocloak.JWT) {
+	path := BuildPath([]string{config.Url, "login"})
 
-	if err != nil {
-		panic(err)
-	}
+	fmt.Println(path)
 
-	user := gocloak.User{
-		Username: username,
-		Email:    username}
-	userId, err := goCloak.CreateUser(jwt.AccessToken, config.KeycloakConfig.Realm, user)
-
-	if err != nil {
-		panic(err)
-	}
-	err = goCloak.SetPassword(jwt.AccessToken, *userId, config.KeycloakConfig.Realm, password, false)
-
-	if err != nil {
-		panic(err)
-	}
-}
-
-func AuthTest(config *Config, openId *gocloak.JWT) {
-
-	path := BuildPath([]string{config.Url, "auth-test"})
-	request, _ := NewRequest("GET", path, nil)
+	request, _ := NewRequest("PUT", path, nil)
 	request.Header.Set("Authorization", "bearer "+openId.AccessToken)
-
 	client := &Client{}
 	response, err := client.Do(request)
 
@@ -297,15 +271,18 @@ func AuthTest(config *Config, openId *gocloak.JWT) {
 	}
 
 	if response.StatusCode == 200 {
+
 		log.Println("You're authorized")
+		return
+	} else if response.StatusCode == 201 {
+		log.Println("Welcome to Bosh Package Manager")
 		return
 	}
 
-	log.Println("Expected 200 but was " + strconv.Itoa(response.StatusCode))
+	log.Println("Expected 200 or 201 but was " + strconv.Itoa(response.StatusCode))
 }
 
 func buildBody(data MetaData) ([]byte, error) {
-
 	requestBody := requestBody{
 		Name:         data.Name,
 		Version:      data.Version,

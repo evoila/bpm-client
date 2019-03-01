@@ -19,7 +19,8 @@ var rootCmd = &cobra.Command{
 	Use:   "BPM-Client",
 	Short: "CLI Tool to access Bosh Package Manager",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Please specify one command of: upload, update, download, delete, search, publish or create-vendor")
+		fmt.Println("Please specify one command of: upload, update," +
+			" download, delete, search, publish or create-vendor")
 	},
 }
 
@@ -28,12 +29,11 @@ func init() {
 		Use:   "upload",
 		Short: "Upload a package to Bosh Package Manager",
 		Run: func(cmd *cobra.Command, args []string) {
-			setupConfig()
 			log.Println("Begin upload.")
+			setupConfig()
+			jwt, err := SetUsernamePasswordIfNewAndPerformLogin(&config)
 
-			jwt := rest.Login(&config)
-
-			if jwt == nil {
+			if err != nil {
 				log.Println("└─ Unauthorized. Upload canceled.")
 			}
 
@@ -46,9 +46,16 @@ func init() {
 			log.Println("Finished upload.")
 		},
 	}
-	uploadCmd.Flags().StringVarP(&pack, "package", "p", "", "The name of the package to upload")
+	uploadCmd.Flags().StringVarP(&pack,
+		"package",
+		"p",
+		"",
+		"The name of the package to upload")
 	uploadCmd.MarkFlagRequired("package")
-	uploadCmd.Flags().BoolVar(&update, "update", false, "Set if you want tp update packages.")
+	uploadCmd.Flags().BoolVar(&update,
+		"update",
+		false,
+		"Set if you want tp update packages.")
 
 	var downloadCmd = &cobra.Command{
 		Use:   "download",
@@ -57,11 +64,15 @@ func init() {
 			setupConfig()
 
 			var jwt *gocloak.JWT
+			var err error
 
 			if config.Username != "" && config.Password != "" {
-				jwt = rest.Login(&config)
+				jwt, err = rest.Login(&config)
 			}
 
+			if err != nil {
+				log.Println("└─ Unauthorized. Download canceled.")
+			}
 			requestBody := PackageRequestBody{
 				Name:    pack,
 				Vendor:  vendor,
@@ -82,17 +93,12 @@ func init() {
 		Short: "test credentials",
 		Run: func(cmd *cobra.Command, args []string) {
 			setupConfig()
-			if config.Username == "" && config.Password == "" {
-				log.Println("Please set your username and password in the config file and reference it via path variable")
-				return
-			}
 
 			log.Println("Testing login for " + config.Username)
+			jwt, err := SetUsernamePasswordIfNewAndPerformLogin(&config)
 
-			openId := rest.Login(&config)
-
-			if openId != nil {
-				rest.AuthTest(&config, openId)
+			if err == nil {
+				rest.BackendLogin(&config, jwt)
 			} else {
 				log.Println("login failed.")
 			}
@@ -104,20 +110,14 @@ func init() {
 		Short: "creates a new vendor and adds you to it as a member",
 		Run: func(cmd *cobra.Command, args []string) {
 			setupConfig()
-			if config.Username == "" && config.Password == "" {
-				log.Println("Please set your username and password in the config file and reference it via path variable")
-				return
-			}
-
 			if vendor == "" {
 				log.Println("Please specify a name for the new vendor.")
 				return
 			}
+			jwt, err := SetUsernamePasswordIfNewAndPerformLogin(&config)
 
-			openId := rest.Login(&config)
-
-			if openId != nil {
-				rest.CreateVendor(&config, vendor, openId)
+			if err == nil {
+				rest.CreateVendor(&config, vendor, jwt)
 			} else {
 				log.Println("login failed.")
 			}
@@ -131,12 +131,13 @@ func init() {
 		Run: func(cmd *cobra.Command, args []string) {
 			setupConfig()
 			if config.Username == "" && config.Password == "" {
-				log.Println("Please set your username and password in the config file and reference it via path variable")
+				log.Println("Please set your username and password in the " +
+					"config file and reference it via path variable")
 				return
 			}
-			openId := rest.Login(&config)
+			openId, err := rest.Login(&config)
 
-			if openId != nil {
+			if err == nil {
 				Publish(vendor, pack, version, accessLevel, &config, openId, force)
 			} else {
 				log.Println("login failed.")
@@ -146,23 +147,51 @@ func init() {
 	publishPackage.Flags().StringVarP(&vendor, "vendor", "v", "", "The name of the vendor")
 	publishPackage.Flags().StringVarP(&pack, "package", "p", "", "The name of the package")
 	publishPackage.MarkFlagRequired("package")
-	publishPackage.Flags().StringVarP(&version, "version", "s", "", "Version of the package")
+	publishPackage.Flags().StringVarP(&version,
+		"version",
+		"s",
+		"",
+		"Version of the package")
 	publishPackage.MarkFlagRequired("version")
-	publishPackage.Flags().StringVarP(&accessLevel, "access-level", "a", "", "The desired access level. Either vendor or public")
+	publishPackage.Flags().StringVarP(&accessLevel,
+		"access-level",
+		"a",
+		"",
+		"The desired access level. Either vendor or public")
 	publishPackage.MarkFlagRequired("access-level")
-	publishPackage.Flags().BoolVarP(&force, "force", "f", false, "Set this flag to skip all prompts")
+	publishPackage.Flags().BoolVarP(&force,
+		"force",
+		"f",
+		false,
+		"Set this flag to skip all prompts")
 
 	var searchByVendor = &cobra.Command{
 		Use:   "vendor-search",
 		Short: "search packages by a given vendor",
 		Run: func(cmd *cobra.Command, args []string) {
 			setupConfig()
-			openId := rest.Login(&config)
+			var jwt *gocloak.JWT
+			var err error
 
-			SearchByVendor(vendor, &config, openId)
+			if config.Username != "" && config.Password != "" {
+				jwt, err = rest.Login(&config)
+			}
+			if err != nil {
+				log.Println("login failed.")
+			}
+			SearchByVendor(vendor, &config, jwt)
 		},
 	}
 	searchByVendor.Flags().StringVarP(&vendor, "vendor", "v", "", "The name of the vendor")
+
+	var register = &cobra.Command{
+		Use:   "register",
+		Short: "register a new user",
+		Run: func(cmd *cobra.Command, args []string) {
+			setupConfig()
+			Register(&config)
+		},
+	}
 
 	rootCmd.AddCommand(uploadCmd)
 	rootCmd.AddCommand(downloadCmd)
@@ -170,6 +199,7 @@ func init() {
 	rootCmd.AddCommand(createVendor)
 	rootCmd.AddCommand(publishPackage)
 	rootCmd.AddCommand(searchByVendor)
+	rootCmd.AddCommand(register)
 }
 
 func setupConfig() {
