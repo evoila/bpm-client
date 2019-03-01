@@ -62,8 +62,7 @@ func ReadAndValidateSpec(packageName string) (*SpecFile, *string) {
 	return &specFile, nil
 }
 
-func WriteConfig(config *Config, configLocation string) {
-
+func WriteConfig(config Config, configLocation string) {
 	data, err := Marshal(config)
 
 	if err != nil {
