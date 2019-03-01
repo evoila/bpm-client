@@ -3,7 +3,6 @@ package rest
 import (
 	. "bytes"
 	. "encoding/json"
-	"fmt"
 	"github.com/Nerzal/gocloak"
 	. "github.com/evoila/BPM-Client/helpers"
 	. "github.com/evoila/BPM-Client/model"
@@ -258,9 +257,6 @@ func Login(config *Config) (*gocloak.JWT, error) {
 
 func BackendLogin(config *Config, openId *gocloak.JWT) {
 	path := BuildPath([]string{config.Url, "login"})
-
-	fmt.Println(path)
-
 	request, _ := NewRequest("PUT", path, nil)
 	request.Header.Set("Authorization", "bearer "+openId.AccessToken)
 	client := &Client{}
