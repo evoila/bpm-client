@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	. "github.com/Nerzal/gocloak"
 	. "github.com/evoila/BPM-Client/bundle"
 	. "github.com/evoila/BPM-Client/helpers"
 	. "github.com/evoila/BPM-Client/model"
@@ -11,7 +12,7 @@ import (
 	"strconv"
 )
 
-func Download(depth string, requestBody PackageRequestBody, config *Config, openId *OpenId) {
+func Download(depth string, requestBody PackageRequestBody, config *Config, jwt *JWT) {
 
 	stat, _ := os.Stat(BuildPath([]string{"packages", requestBody.Name}))
 
@@ -20,8 +21,8 @@ func Download(depth string, requestBody PackageRequestBody, config *Config, open
 		return
 	}
 
-	metaData := rest.GetMetaData(requestBody.Vendor, requestBody.Name, requestBody.Version, config, openId)
-	permission := rest.GetDownloadPermission(config, requestBody, openId)
+	metaData := rest.GetMetaData(requestBody.Vendor, requestBody.Name, requestBody.Version, config, jwt)
+	permission := rest.GetDownloadPermission(config, requestBody, jwt)
 
 	if metaData == nil {
 		fmt.Println(depth + "└─ Package '" + requestBody.Name + "' does not exist.")
@@ -72,7 +73,7 @@ func Download(depth string, requestBody PackageRequestBody, config *Config, open
 			Vendor:  dependency.Vendor}
 		fmt.Println(depth + "├─ Handling dependency")
 
-		Download(depth+"│  ", dependencyRequest, config, openId)
+		Download(depth+"│  ", dependencyRequest, config, jwt)
 	}
 
 	fmt.Println(depth + "└─ Finished package: " + requestBody.Name)

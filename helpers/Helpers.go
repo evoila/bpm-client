@@ -46,14 +46,12 @@ func ReadAndValidateSpec(packageName string) (*SpecFile, *string) {
 	}
 
 	var specFile SpecFile
-
 	err = Unmarshal(yamlFile, &specFile)
 
-	if specFile.Name == "" || specFile.Version == "" || specFile.Vendor == ""{
+	if specFile.Name == "" || specFile.Version == "" || specFile.Vendor == "" {
 		message := "The Specfile needs to specify package, version and vendor."
 		return nil, &message
 	}
-
 
 	if err != nil {
 		message := "'" + packageName + "' does not contain a valid spec file."
@@ -62,6 +60,19 @@ func ReadAndValidateSpec(packageName string) (*SpecFile, *string) {
 	}
 
 	return &specFile, nil
+}
+
+func WriteConfig(config Config, configLocation string) {
+	data, err := Marshal(config)
+
+	if err != nil {
+		panic(err)
+	}
+	err = ioutil.WriteFile(configLocation, data, 0644)
+
+	if err != nil {
+		panic(err)
+	}
 }
 
 func ReadConfig(configLocation string) Config {

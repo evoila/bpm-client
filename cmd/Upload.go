@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"github.com/Nerzal/gocloak"
 	. "github.com/evoila/BPM-Client/bundle"
 	. "github.com/evoila/BPM-Client/collections"
 	. "github.com/evoila/BPM-Client/helpers"
@@ -16,7 +17,7 @@ import (
 
 var set = NewStringSet()
 
-func RunUpdateIfPackagePresentUploadIfNot(packageName string, config *Config, openid *OpenId) {
+func RunUpdateIfPackagePresentUploadIfNot(packageName string, config *Config, jwt *gocloak.JWT) {
 
 	specFile, errMessage := ReadAndValidateSpec(packageName)
 
@@ -25,18 +26,18 @@ func RunUpdateIfPackagePresentUploadIfNot(packageName string, config *Config, op
 		return
 	}
 
-	metaData := GetMetaData(specFile.Vendor, packageName, specFile.Version, config, openid)
+	metaData := GetMetaData(specFile.Vendor, packageName, specFile.Version, config, jwt)
 
 	if metaData == nil {
 		fmt.Println("Specified package not found. Uploading instead of updating.")
 
-		CheckIfAlreadyPresentAndUpload(packageName, config, openid)
+		CheckIfAlreadyPresentAndUpload(packageName, config, jwt)
 	} else {
-		upload(packageName, specFile.Vendor, "", true, config, openid)
+		upload(packageName, specFile.Vendor, "", true, config, jwt)
 	}
 }
 
-func CheckIfAlreadyPresentAndUpload(packageName string, config *Config, openid *OpenId) {
+func CheckIfAlreadyPresentAndUpload(packageName string, config *Config, jwt *gocloak.JWT) {
 
 	specFile, errMessage := ReadAndValidateSpec(packageName)
 
@@ -45,14 +46,14 @@ func CheckIfAlreadyPresentAndUpload(packageName string, config *Config, openid *
 		return
 	}
 
-	metaData := GetMetaDataListForPackageName(packageName, config, openid)
+	metaData := GetMetaDataListForPackageName(packageName, config, jwt)
 
 	if len(metaData) < 1 || askOperatorForProcedure(metaData) {
-		upload(packageName, specFile.Vendor, "", false, config, openid)
+		upload(packageName, specFile.Vendor, "", false, config, jwt)
 	}
 }
 
-func upload(packageName, vendor, depth string, update bool, config *Config, openId *OpenId) {
+func upload(packageName, vendor, depth string, update bool, config *Config, openId *gocloak.JWT) {
 
 	if set.Get(packageName) {
 		fmt.Println(depth + "└─  Dependency " + packageName + " already handled")
@@ -85,7 +86,8 @@ func upload(packageName, vendor, depth string, update bool, config *Config, open
 		FilePath:     pack,
 		Files:        specFile.Files,
 		Dependencies: dependencies,
-		Description:  specFile.Description}
+		Description:  specFile.Description,
+		Stemcell:     specFile.Stemcell}
 
 	var permission, oldMeta = RequestPermission(result, false, config, openId)
 

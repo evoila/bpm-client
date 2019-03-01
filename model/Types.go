@@ -14,11 +14,17 @@ type ResponseBody struct {
 }
 
 type MetaData struct {
-	Id, Name, Version, Vendor, FilePath, UploadDate, Description string
-	Files                                                        []string
-	Stemcell                                                     Stemcell
-	Dependencies                                                 []Dependency
-	Size                                                         int64
+	Id           string
+	Name         string       `json:"name"`
+	Version      string       `json:"version"`
+	Vendor       string       `json:"vendor"`
+	FilePath     string       `json:"file_path"`
+	UploadDate   string       `json:"upload_date"`
+	Description  string       `json:"description"`
+	Files        []string     `json:"files"`
+	Stemcell     Stemcell     `json:"stemcell"`
+	Dependencies []Dependency `json:"dependencies"`
+	Size         int64        `json:"size"`
 }
 
 type Dependency struct {
@@ -33,7 +39,7 @@ type Stemcell struct {
 	MinorVersion int    `json:"minor_version"`
 }
 
-func (m MetaData) String(depth string) string {
+func (m MetaData) String2() string {
 
 	var dependenciesAsStrings []string
 
@@ -45,6 +51,32 @@ func (m MetaData) String(depth string) string {
 		dependenciesAsStrings = append(dependenciesAsStrings, "none")
 	}
 
+	var stemcellString string
+	if (Stemcell{}) != m.Stemcell {
+		stemcellString = m.Stemcell.stringFormat("")
+	} else {
+		stemcellString = "│  Stemcell:       Not specified"
+	}
+
+	return "│  Name:           " + m.Name + "\n" +
+		"│  Version:        " + m.Version + "\n" +
+		"│  Vendor:         " + m.Vendor + "\n" +
+		"│  UploadDate:     " + m.UploadDate + "\n" +
+		"│  Files:          " + formatStringArray(m.Files, "") +
+		"│  Dependencies:   " + formatStringArray(dependenciesAsStrings, "") +
+		stemcellString
+}
+
+func (m MetaData) String(depth string) string {
+	var dependenciesAsStrings []string
+
+	if len(m.Dependencies) > 0 {
+		for _, d := range m.Dependencies {
+			dependenciesAsStrings = append(dependenciesAsStrings, d.String())
+		}
+	} else {
+		dependenciesAsStrings = append(dependenciesAsStrings, "none")
+	}
 	var stemcellString string
 	if (Stemcell{}) != m.Stemcell {
 		stemcellString = m.Stemcell.stringFormat(depth)
@@ -75,7 +107,6 @@ func (s Stemcell) stringFormat(depth string) string {
 }
 
 func formatStringArray(stringArray []string, depth string) string {
-
 	if len(stringArray) > 1 {
 		return strings.Join(stringArray, "\n"+depth+"│                  ") + "\n"
 	} else {
@@ -84,6 +115,7 @@ func formatStringArray(stringArray []string, depth string) string {
 }
 
 func (d Dependency) String() string {
+
 	return d.Name + ":" + d.Version + " by " + d.Vendor
 }
 
@@ -125,9 +157,10 @@ type Config struct {
 }
 
 type KeycloakConfig struct {
-	Url      string `yaml:"url"`
-	Realm    string `yaml:"realm"`
-	ClientID string `yaml:"clientId"`
+	Url          string `yaml:"url"`
+	Realm        string `yaml:"realm"`
+	ClientID     string `yaml:"clientId"`
+	ClientSecret string `yaml:"clientSecret"`
 }
 
 type PackageRequestBody struct {
@@ -136,14 +169,18 @@ type PackageRequestBody struct {
 	Vendor  string `json:"vendor"`
 }
 
-type OpenId struct {
-	AccessToken      string `json:"access_token"`
-	ExpiresIn        int    `json:"expires_in"`
-	RefreshExpiresIn int    `json:"refresh_expires_in"`
-	RefreshToken     string `json:"refresh_token"`
-	TokenType        string `json:"token_type"`
-	IdToken          string `json:"id_token"`
-	NotBeforePolicy  string `json:"not-before-policy"`
-	SessionState     string `json:"session_state"`
-	Scope            string `json:"scope"`
+type Page struct {
+	Size          int `json:"size"`
+	TotalElements int `json:"totalElements"`
+	TotalPages    int `json:"totalPages"`
+	Number        int `json:"number"`
+}
+
+type Embedded struct {
+	Packages []MetaData `json:"packages"`
+}
+
+type PaginatedMetaData struct {
+	Embedded Embedded `json:"_embedded"`
+	Page     Page     `json:"page"`
 }
