@@ -25,6 +25,7 @@ type MetaData struct {
 	Stemcell     Stemcell     `json:"stemcell"`
 	Dependencies []Dependency `json:"dependencies"`
 	Size         int64        `json:"size"`
+	Url          string       `json:"url"`
 }
 
 type Dependency struct {
@@ -63,6 +64,7 @@ func (m MetaData) String2() string {
 		"│  Vendor:         " + m.Vendor + "\n" +
 		"│  UploadDate:     " + m.UploadDate + "\n" +
 		"│  Files:          " + formatStringArray(m.Files, "") +
+		"|  URL:            " + m.Url + "\n" +
 		"│  Dependencies:   " + formatStringArray(dependenciesAsStrings, "") +
 		stemcellString
 }
@@ -89,9 +91,9 @@ func (m MetaData) String(depth string) string {
 		depth + "│  Vendor:         " + m.Vendor + "\n" +
 		depth + "│  UploadDate:     " + m.UploadDate + "\n" +
 		depth + "│  Files:          " + formatStringArray(m.Files, depth) +
+		depth + "|  URL:            " + m.Url + "\n" +
 		depth + "│  Dependencies:   " + formatStringArray(dependenciesAsStrings, depth) +
-		stemcellString +
-		depth + "│"
+		stemcellString + "\n" + depth + "│"
 }
 
 func (s Stemcell) isNotEmpty() bool {
@@ -103,7 +105,7 @@ func (s Stemcell) stringFormat(depth string) string {
 	return depth + "│  Stemcell:       " + "\n" +
 		depth + "│   Family:        " + s.Family + "\n" +
 		depth + "│   Major Version: " + strconv.Itoa(s.MajorVersion) + "\n" +
-		depth + "│   Minor Version: " + strconv.Itoa(s.MinorVersion) + "\n"
+		depth + "│   Minor Version: " + strconv.Itoa(s.MinorVersion)
 }
 
 func formatStringArray(stringArray []string, depth string) string {
@@ -120,9 +122,9 @@ func (d Dependency) String() string {
 }
 
 type SpecFile struct {
-	Name, Version, Vendor, Description string
-	Stemcell                           Stemcell
-	Files, Dependencies                []string
+	Name, Version, Vendor, Description, Url string
+	Stemcell                                Stemcell
+	Files, Dependencies                     []string
 }
 
 type BackupResponse struct {
@@ -157,10 +159,9 @@ type Config struct {
 }
 
 type KeycloakConfig struct {
-	Url          string `yaml:"url"`
-	Realm        string `yaml:"realm"`
-	ClientID     string `yaml:"clientId"`
-	ClientSecret string `yaml:"clientSecret"`
+	Url      string `yaml:"url"`
+	Realm    string `yaml:"realm"`
+	ClientID string `yaml:"clientId"`
 }
 
 type PackageRequestBody struct {
