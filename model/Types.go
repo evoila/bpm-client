@@ -157,10 +157,9 @@ type Config struct {
 }
 
 type KeycloakConfig struct {
-	Url          string `yaml:"url"`
-	Realm        string `yaml:"realm"`
-	ClientID     string `yaml:"clientId"`
-	ClientSecret string `yaml:"clientSecret"`
+	Url      string `yaml:"url"`
+	Realm    string `yaml:"realm"`
+	ClientID string `yaml:"clientId"`
 }
 
 type PackageRequestBody struct {

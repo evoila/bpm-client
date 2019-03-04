@@ -73,7 +73,7 @@ func upload(packageName, vendor, depth string, update bool, config *Config, open
 
 	pack := "./" + packageName + ".bpm"
 
-	dependencies, errMessage := readDependencies(*specFile, vendor)
+	dependencies, errMessage := readDependencies(*specFile)
 
 	if errMessage != nil {
 		fmt.Println(depth + "└─  Error in Dependency: " + *errMessage)
@@ -165,7 +165,7 @@ func askOperatorForProcedure(data []MetaData) bool {
 	return strings.ToLower(text) == "yes" || strings.ToLower(text) == "y"
 }
 
-func readDependencies(specFile SpecFile, vendor string) ([]Dependency, *string) {
+func readDependencies(specFile SpecFile) ([]Dependency, *string) {
 
 	var dependencies []Dependency
 
@@ -179,7 +179,7 @@ func readDependencies(specFile SpecFile, vendor string) ([]Dependency, *string) 
 		dependencies = append(dependencies, Dependency{
 			Name:    dependencySpec.Name,
 			Version: dependencySpec.Version,
-			Vendor:  vendor}, )
+			Vendor:  dependencySpec.Vendor}, )
 	}
 
 	return dependencies, nil

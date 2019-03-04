@@ -20,7 +20,7 @@ var rootCmd = &cobra.Command{
 	Short: "CLI Tool to access Bosh Package Manager",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Please specify one command of: upload, update," +
-			" download, delete, search, publish or create-vendor")
+			" download, delete, search, publish or create-vendor, vendor-search")
 	},
 }
 
@@ -183,6 +183,7 @@ func init() {
 		},
 	}
 	searchByVendor.Flags().StringVarP(&vendor, "vendor", "v", "", "The name of the vendor")
+	searchByVendor.MarkFlagRequired("vendor")
 
 	var register = &cobra.Command{
 		Use:   "register",

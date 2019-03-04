@@ -36,6 +36,7 @@ func SetUsernamePasswordIfNewAndPerformLogin(config *Config) (*gocloak.JWT, erro
 		if err == nil {
 			configLocation := os.Getenv("BOSH_PACKAGE_MANAGER_CONFIG")
 			helpers.WriteConfig(*config, configLocation)
+			rest.BackendLogin(config, jwt)
 		}
 	} else {
 
