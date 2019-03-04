@@ -50,6 +50,7 @@ func ReadAndValidateSpec(packageName string) (*SpecFile, *string) {
 
 	if specFile.Name == "" || specFile.Version == "" || specFile.Vendor == "" {
 		message := "The Specfile needs to specify package, version and vendor."
+
 		return nil, &message
 	}
 

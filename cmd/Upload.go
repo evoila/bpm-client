@@ -87,7 +87,8 @@ func upload(packageName, vendor, depth string, update bool, config *Config, open
 		Files:        specFile.Files,
 		Dependencies: dependencies,
 		Description:  specFile.Description,
-		Stemcell:     specFile.Stemcell}
+		Stemcell:     specFile.Stemcell,
+		Url:          specFile.Url}
 
 	var permission, oldMeta = RequestPermission(result, false, config, openId)
 
@@ -104,7 +105,6 @@ func upload(packageName, vendor, depth string, update bool, config *Config, open
 
 		filesToZip = MergeStringList(filesToZip, ScanFolderAndFilter(specFile.Files, "./blobs/"))
 		filesToZip = MergeStringList(filesToZip, ScanFolderAndFilter(specFile.Files, "./src/"))
-
 		size, err := ZipMe(filesToZip, pack)
 
 		defer func() {

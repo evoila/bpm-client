@@ -285,7 +285,10 @@ func buildBody(data MetaData) ([]byte, error) {
 		Vendor:       data.Vendor,
 		Files:        data.Files,
 		Dependencies: data.Dependencies,
-		Description:  data.Description}
+		Description:  data.Description,
+		Stemcell:     data.Stemcell,
+		Url:          data.Url,
+	}
 
 	return Marshal(requestBody)
 }
@@ -297,4 +300,6 @@ type requestBody struct {
 	Description  string       `json:"description"`
 	Files        []string     `json:"files"`
 	Dependencies []Dependency `json:"dependencies"`
+	Stemcell     Stemcell     `json:"stemcell"`
+	Url          string       `json:"url"`
 }
