@@ -56,7 +56,7 @@ func (m MetaData) String(depth string) string {
 		depth + "│  Vendor:         " + m.Vendor + "\n" +
 		depth + "│  UploadDate:     " + m.UploadDate + "\n" +
 		depth + "│  Files:          " + formatStringArray(m.Files, depth) +
-		depth + "|  URL:            " + m.Url + "\n" +
+		depth + "│  URL:            " + m.Url + "\n" +
 		depth + "│  Dependencies:   " + formatStringArray(dependenciesAsStrings, depth) +
 		stemcellString + "\n" + depth + "│"
 }
