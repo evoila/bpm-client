@@ -36,6 +36,26 @@ func MergeMetaDataList(l1, l2 []MetaData) []MetaData {
 	return l1
 }
 
+func ReadDownloadSpec() (*DownloadSpec, *string) {
+
+	yamlFile, err := ioutil.ReadFile("./packages/download.spec")
+	if err != nil {
+		message := "Did not find a download.spec file."
+
+		return nil, &message
+	}
+
+	var downloadSpec DownloadSpec
+	err = Unmarshal(yamlFile, &downloadSpec)
+
+	if err != nil {
+		message := "The download spec is not valid."
+		return nil, &message
+	}
+
+	return &downloadSpec, nil
+}
+
 func ReadAndValidateSpec(packageName string) (*SpecFile, *string) {
 
 	yamlFile, err := ioutil.ReadFile("./packages/" + packageName + "/spec")
@@ -53,6 +73,9 @@ func ReadAndValidateSpec(packageName string) (*SpecFile, *string) {
 
 		return nil, &message
 	}
+
+	//TODO() return error message if version is not valid
+	//specFile.Version
 
 	if err != nil {
 		message := "'" + packageName + "' does not contain a valid spec file."

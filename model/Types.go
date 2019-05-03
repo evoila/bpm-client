@@ -5,41 +5,6 @@ import (
 	"strings"
 )
 
-type ResponseBody struct {
-	Name       string   `json:"name"`
-	Version    string   `json:"version"`
-	Vendor     string   `json:"vendor"`
-	S3location string   `json:"s3location"`
-	Files      []string `json:"files"`
-}
-
-type MetaData struct {
-	Id           string
-	Name         string       `json:"name"`
-	Version      string       `json:"version"`
-	Vendor       string       `json:"vendor"`
-	FilePath     string       `json:"file_path"`
-	UploadDate   string       `json:"upload_date"`
-	Description  string       `json:"description"`
-	Files        []string     `json:"files"`
-	Stemcell     Stemcell     `json:"stemcell"`
-	Dependencies []Dependency `json:"dependencies"`
-	Size         int64        `json:"size"`
-	Url          string       `json:"url"`
-}
-
-type Dependency struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
-	Vendor  string `json:"vendor"`
-}
-
-type Stemcell struct {
-	Family       string `json:"family"`
-	MajorVersion int    `json:"major_version"`
-	MinorVersion int    `json:"minor_version"`
-}
-
 func (m MetaData) String2() string {
 
 	var dependenciesAsStrings []string
@@ -91,7 +56,7 @@ func (m MetaData) String(depth string) string {
 		depth + "│  Vendor:         " + m.Vendor + "\n" +
 		depth + "│  UploadDate:     " + m.UploadDate + "\n" +
 		depth + "│  Files:          " + formatStringArray(m.Files, depth) +
-		depth + "|  URL:            " + m.Url + "\n" +
+		depth + "│  URL:            " + m.Url + "\n" +
 		depth + "│  Dependencies:   " + formatStringArray(dependenciesAsStrings, depth) +
 		stemcellString + "\n" + depth + "│"
 }
@@ -116,7 +81,7 @@ func formatStringArray(stringArray []string, depth string) string {
 	}
 }
 
-func (d Dependency) String() string {
+func (d PackagesReference) String() string {
 
 	return d.Name + ":" + d.Version + " by " + d.Vendor
 }
@@ -149,21 +114,6 @@ type S3Permission struct {
 	SessionToken string `json:"session-token"`
 }
 
-type Config struct {
-	Url            string         `yaml:"url"`
-	Port           string         `yaml:"port"`
-	Vendor         string         `yaml:"vendor"`
-	Username       string         `yaml:"username"`
-	Password       string         `yaml:"password"`
-	KeycloakConfig KeycloakConfig `yaml:"keycloakConfig"`
-}
-
-type KeycloakConfig struct {
-	Url      string `yaml:"url"`
-	Realm    string `yaml:"realm"`
-	ClientID string `yaml:"clientId"`
-}
-
 type PackageRequestBody struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
@@ -184,4 +134,60 @@ type Embedded struct {
 type PaginatedMetaData struct {
 	Embedded Embedded `json:"_embedded"`
 	Page     Page     `json:"page"`
+}
+
+type ResponseBody struct {
+	Name       string   `json:"name"`
+	Version    string   `json:"version"`
+	Vendor     string   `json:"vendor"`
+	S3location string   `json:"s3location"`
+	Files      []string `json:"files"`
+}
+
+type MetaData struct {
+	Id           string
+	Name         string              `json:"name"`
+	Version      string              `json:"version"`
+	Mirrors      []string            `json:"mirrors"`
+	Vendor       string              `json:"vendor"`
+	FilePath     string              `json:"file_path"`
+	UploadDate   string              `json:"upload_date"`
+	Description  string              `json:"description"`
+	Files        []string            `json:"files"`
+	Stemcell     Stemcell            `json:"stemcell"`
+	Dependencies []PackagesReference `json:"dependencies"`
+	Size         int64               `json:"size"`
+	Url          string              `json:"url"`
+}
+
+type PackagesReference struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+	Vendor  string `json:"vendor"`
+	Mirror  string `json:"mirror"`
+}
+
+type Stemcell struct {
+	Family       string `json:"family"`
+	MajorVersion int    `json:"major_version"`
+	MinorVersion int    `json:"minor_version"`
+}
+
+type DownloadSpec struct {
+	GlobalMirrors []string `yaml:"global-mirrors"`
+	Packages      []PackagesReference
+}
+
+type Config struct {
+	Url            string         `yaml:"url"`
+	Port           string         `yaml:"port"`
+	Username       string         `yaml:"username"`
+	Password       string         `yaml:"password"`
+	KeycloakConfig KeycloakConfig `yaml:"keycloakConfig"`
+}
+
+type KeycloakConfig struct {
+	Url      string `yaml:"url"`
+	Realm    string `yaml:"realm"`
+	ClientID string `yaml:"clientId"`
 }
