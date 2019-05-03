@@ -294,12 +294,12 @@ func buildBody(data MetaData) ([]byte, error) {
 }
 
 type requestBody struct {
-	Name         string       `json:"name"`
-	Version      string       `json:"version"`
-	Vendor       string       `json:"vendor"`
-	Description  string       `json:"description"`
-	Files        []string     `json:"files"`
-	Dependencies []Dependency `json:"dependencies"`
-	Stemcell     Stemcell     `json:"stemcell"`
-	Url          string       `json:"url"`
+	Name         string              `json:"name"`
+	Version      string              `json:"version"`
+	Vendor       string              `json:"vendor"`
+	Description  string              `json:"description"`
+	Files        []string            `json:"files"`
+	Dependencies []PackagesReference `json:"dependencies"`
+	Stemcell     Stemcell            `json:"stemcell"`
+	Url          string              `json:"url"`
 }

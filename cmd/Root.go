@@ -20,7 +20,7 @@ var rootCmd = &cobra.Command{
 	Short: "CLI Tool to access Bosh Package Manager",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Please specify one command of: upload, update," +
-			" download, delete, search, publish or create-vendor, vendor-search")
+			" download, delete, vendor-search, publish or create-vendor")
 	},
 }
 
@@ -59,7 +59,7 @@ func init() {
 
 	var downloadCmd = &cobra.Command{
 		Use:   "download",
-		Short: "Download a package with all dependencies from Bosh Package Manager",
+		Short: "DownloadPackageWithDependencies a package with all dependencies from Bosh Package Manager",
 		Run: func(cmd *cobra.Command, args []string) {
 			setupConfig()
 
@@ -71,14 +71,14 @@ func init() {
 			}
 
 			if err != nil {
-				log.Println("└─ Unauthorized. Download canceled.")
+				log.Println("└─ Unauthorized. DownloadPackageWithDependencies canceled.")
 			}
 			requestBody := PackageRequestBody{
 				Name:    pack,
 				Vendor:  vendor,
 				Version: version}
 
-			Download("", requestBody, &config, jwt)
+			DownloadPackageWithDependencies("", requestBody, &config, jwt)
 		},
 	}
 	downloadCmd.Flags().StringVarP(&pack, "package", "p", "", "The name of the package")
@@ -87,6 +87,35 @@ func init() {
 	downloadCmd.MarkFlagRequired("vendor")
 	downloadCmd.Flags().StringVarP(&version, "version", "s", "", "Version of the package")
 	downloadCmd.MarkFlagRequired("version")
+
+	var createRelease = &cobra.Command{
+		Use:   "create-release",
+		Short: "DownloadPackageWithDependencies a package with all dependencies from Bosh Package Manager",
+		Run: func(cmd *cobra.Command, args []string) {
+			setupConfig()
+			downloadSpec, errMessage := helpers.ReadDownloadSpec()
+
+			log.Println("Downloading packages based on download.spec")
+
+			if errMessage != nil {
+				log.Print(errMessage)
+			}
+
+			var jwt *gocloak.JWT
+			var err error
+
+			if config.Username != "" && config.Password != "" {
+				jwt, err = rest.Login(&config)
+			}
+
+			if err != nil {
+				log.Println("└─ Invalid Credentials.")
+			}
+
+			DownloadBySpec(*downloadSpec, &config, jwt)
+
+		},
+	}
 
 	var loginTest = &cobra.Command{
 		Use:   "login",
@@ -201,6 +230,7 @@ func init() {
 	rootCmd.AddCommand(publishPackage)
 	rootCmd.AddCommand(searchByVendor)
 	rootCmd.AddCommand(register)
+	rootCmd.AddCommand(createRelease)
 }
 
 func setupConfig() {

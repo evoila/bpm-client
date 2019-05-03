@@ -56,7 +56,7 @@ func CheckIfAlreadyPresentAndUpload(packageName string, config *Config, jwt *goc
 func upload(packageName, vendor, depth string, update bool, config *Config, openId *gocloak.JWT) {
 
 	if set.Get(packageName) {
-		fmt.Println(depth + "└─  Dependency " + packageName + " already handled")
+		fmt.Println(depth + "└─  PackagesReference " + packageName + " already handled")
 		return
 	}
 
@@ -76,7 +76,7 @@ func upload(packageName, vendor, depth string, update bool, config *Config, open
 	dependencies, errMessage := readDependencies(*specFile)
 
 	if errMessage != nil {
-		fmt.Println(depth + "└─  Error in Dependency: " + *errMessage)
+		fmt.Println(depth + "└─  Error in PackagesReference: " + *errMessage)
 	}
 
 	result := MetaData{
@@ -165,9 +165,9 @@ func askOperatorForProcedure(data []MetaData) bool {
 	return strings.ToLower(text) == "yes" || strings.ToLower(text) == "y"
 }
 
-func readDependencies(specFile SpecFile) ([]Dependency, *string) {
+func readDependencies(specFile SpecFile) ([]PackagesReference, *string) {
 
-	var dependencies []Dependency
+	var dependencies []PackagesReference
 
 	for _, d := range specFile.Dependencies {
 		dependencySpec, errMessage := ReadAndValidateSpec(d)
@@ -176,7 +176,7 @@ func readDependencies(specFile SpecFile) ([]Dependency, *string) {
 			return nil, errMessage
 		}
 
-		dependencies = append(dependencies, Dependency{
+		dependencies = append(dependencies, PackagesReference{
 			Name:    dependencySpec.Name,
 			Version: dependencySpec.Version,
 			Vendor:  dependencySpec.Vendor}, )

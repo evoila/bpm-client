@@ -12,7 +12,7 @@ import (
 	"strconv"
 )
 
-func Download(depth string, requestBody PackageRequestBody, config *Config, jwt *JWT) {
+func DownloadPackageWithDependencies(depth string, requestBody PackageRequestBody, config *Config, jwt *JWT) {
 
 	stat, _ := os.Stat(BuildPath([]string{"packages", requestBody.Name}))
 
@@ -32,7 +32,7 @@ func Download(depth string, requestBody PackageRequestBody, config *Config, jwt 
 	fmt.Println(metaData.String(depth))
 
 	if permission == nil {
-		fmt.Println(depth + "└─ Download permission has not been granted.")
+		fmt.Println(depth + "└─ DownloadPackageWithDependencies permission has not been granted.")
 		return
 	}
 
@@ -51,7 +51,6 @@ func Download(depth string, requestBody PackageRequestBody, config *Config, jwt 
 		panic(err)
 	}
 
-	fmt.Println(depth + "├─ Download successful")
 	err = UnzipPackage(requestBody.Name+".bpm", destination)
 
 	if err != nil {
@@ -73,8 +72,22 @@ func Download(depth string, requestBody PackageRequestBody, config *Config, jwt 
 			Vendor:  dependency.Vendor}
 		fmt.Println(depth + "├─ Handling dependency")
 
-		Download(depth+"│  ", dependencyRequest, config, jwt)
+		DownloadPackageWithDependencies(depth+"│  ", dependencyRequest, config, jwt)
 	}
 
 	fmt.Println(depth + "└─ Finished package: " + requestBody.Name)
+}
+
+func DownloadBySpec(spec DownloadSpec, config *Config, jwt *JWT) {
+
+	for _, packageReference := range spec.Packages {
+
+		fmt.Println("┌─ Beginning with:")
+		request := PackageRequestBody{
+			Name:    packageReference.Name,
+			Version: packageReference.Version,
+			Vendor:  packageReference.Vendor}
+
+		DownloadPackageWithDependencies("", request, config, jwt)
+	}
 }
