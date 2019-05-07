@@ -21,7 +21,7 @@ func RunUpdateIfPackagePresentUploadIfNot(packageName string, config *Config, jw
 
 	specFile, errMessage := ReadAndValidateSpec(packageName)
 
-	if errMessage != nil {
+	if errMessage != "" {
 		fmt.Println(errMessage)
 		return
 	}
@@ -41,7 +41,7 @@ func CheckIfAlreadyPresentAndUpload(packageName string, config *Config, jwt *goc
 
 	specFile, errMessage := ReadAndValidateSpec(packageName)
 
-	if errMessage != nil {
+	if errMessage != "" {
 		fmt.Println(errMessage)
 		return
 	}
@@ -53,7 +53,7 @@ func CheckIfAlreadyPresentAndUpload(packageName string, config *Config, jwt *goc
 	}
 }
 
-func upload(packageName, vendor, depth string, update bool, config *Config, openId *gocloak.JWT) {
+func upload(packageName, vendor, depth string, update bool, config *Config, openId *gocloak.JWT)  {
 
 	if set.Get(packageName) {
 		fmt.Println(depth + "└─  PackagesReference " + packageName + " already handled")
@@ -66,8 +66,8 @@ func upload(packageName, vendor, depth string, update bool, config *Config, open
 
 	specFile, errMessage := ReadAndValidateSpec(packageName)
 
-	if errMessage != nil {
-		fmt.Println(depth + "└─  " + *errMessage)
+	if errMessage != "" {
+		fmt.Println(depth + "└─  " + errMessage)
 		return
 	}
 
@@ -75,8 +75,8 @@ func upload(packageName, vendor, depth string, update bool, config *Config, open
 
 	dependencies, errMessage := readDependencies(*specFile)
 
-	if errMessage != nil {
-		fmt.Println(depth + "└─  Error in PackagesReference: " + *errMessage)
+	if errMessage != "" {
+		fmt.Println(depth + "└─  Error in PackagesReference: " + errMessage)
 	}
 
 	result := MetaData{
@@ -165,14 +165,14 @@ func askOperatorForProcedure(data []MetaData) bool {
 	return strings.ToLower(text) == "yes" || strings.ToLower(text) == "y"
 }
 
-func readDependencies(specFile SpecFile) ([]PackagesReference, *string) {
+func readDependencies(specFile SpecFile) ([]PackagesReference, string) {
 
 	var dependencies []PackagesReference
 
 	for _, d := range specFile.Dependencies {
 		dependencySpec, errMessage := ReadAndValidateSpec(d)
 
-		if errMessage != nil {
+		if errMessage != "" {
 			return nil, errMessage
 		}
 
@@ -182,5 +182,5 @@ func readDependencies(specFile SpecFile) ([]PackagesReference, *string) {
 			Vendor:  dependencySpec.Vendor}, )
 	}
 
-	return dependencies, nil
+	return dependencies, ""
 }

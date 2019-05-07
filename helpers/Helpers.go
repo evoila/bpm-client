@@ -3,6 +3,7 @@ package helpers
 import (
 	"bufio"
 	"fmt"
+	"github.com/blang/semver"
 	. "github.com/evoila/BPM-Client/model"
 	. "gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -36,13 +37,13 @@ func MergeMetaDataList(l1, l2 []MetaData) []MetaData {
 	return l1
 }
 
-func ReadDownloadSpec() (*DownloadSpec, *string) {
+func ReadDownloadSpec() (*DownloadSpec, string) {
 
 	yamlFile, err := ioutil.ReadFile("./packages/download.spec")
 	if err != nil {
 		message := "Did not find a download.spec file."
 
-		return nil, &message
+		return nil, message
 	}
 
 	var downloadSpec DownloadSpec
@@ -50,19 +51,19 @@ func ReadDownloadSpec() (*DownloadSpec, *string) {
 
 	if err != nil {
 		message := "The download spec is not valid."
-		return nil, &message
+		return nil, message
 	}
 
-	return &downloadSpec, nil
+	return &downloadSpec, ""
 }
 
-func ReadAndValidateSpec(packageName string) (*SpecFile, *string) {
+func ReadAndValidateSpec(packageName string) (*SpecFile, string) {
 
 	yamlFile, err := ioutil.ReadFile("./packages/" + packageName + "/spec")
 	if err != nil {
 		message := "Did not find a spec file. Is '" + packageName + "' a valid package?"
 
-		return nil, &message
+		return nil, message
 	}
 
 	var specFile SpecFile
@@ -71,19 +72,18 @@ func ReadAndValidateSpec(packageName string) (*SpecFile, *string) {
 	if specFile.Name == "" || specFile.Version == "" || specFile.Vendor == "" {
 		message := "The Specfile needs to specify package, version and vendor."
 
-		return nil, &message
+		return nil, message
 	}
 
-	//TODO() return error message if version is not valid
-	//specFile.Version
+	_, err = semver.Make(specFile.Version)
 
 	if err != nil {
-		message := "'" + packageName + "' does not contain a valid spec file."
+		message := "The Version of the package '" + packageName + "' is not Semver conform."
 
-		return nil, &message
+		return nil, message
 	}
 
-	return &specFile, nil
+	return &specFile, ""
 }
 
 func WriteConfig(config Config, configLocation string) {

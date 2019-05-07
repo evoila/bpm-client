@@ -35,6 +35,7 @@ func init() {
 
 			if err != nil {
 				log.Println("└─ Unauthorized. Upload canceled.")
+				return
 			}
 
 			if update {
@@ -97,7 +98,7 @@ func init() {
 
 			log.Println("Downloading packages based on download.spec")
 
-			if errMessage != nil {
+			if errMessage != "" {
 				log.Print(errMessage)
 			}
 
