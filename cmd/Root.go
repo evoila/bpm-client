@@ -12,7 +12,7 @@ import (
 )
 
 var config Config
-var pack, version, vendor, accessLevel string
+var pack, version, publisher, accessLevel string
 var update, force bool
 
 var rootCmd = &cobra.Command{
@@ -20,7 +20,7 @@ var rootCmd = &cobra.Command{
 	Short: "CLI Tool to access Bosh Package Manager",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Please specify one command of: upload, update," +
-			" download, delete, vendor-search, publish or create-vendor")
+			" download, delete, publisher-search, publish or create-publisher")
 	},
 }
 
@@ -47,12 +47,8 @@ func init() {
 			log.Println("Finished upload.")
 		},
 	}
-	uploadCmd.Flags().StringVarP(&pack,
-		"package",
-		"p",
-		"",
-		"The name of the package to upload")
-	uploadCmd.MarkFlagRequired("package")
+	uploadCmd.Flags().StringVarP(&pack, "package", "n", "", "The name of the package to upload")
+	_ = uploadCmd.MarkFlagRequired("package")
 	uploadCmd.Flags().BoolVar(&update,
 		"update",
 		false,
@@ -60,7 +56,7 @@ func init() {
 
 	var downloadCmd = &cobra.Command{
 		Use:   "download",
-		Short: "DownloadPackageWithDependencies a package with all dependencies from Bosh Package Manager",
+		Short: "Download a package with all its dependencies.",
 		Run: func(cmd *cobra.Command, args []string) {
 			setupConfig()
 
@@ -72,22 +68,22 @@ func init() {
 			}
 
 			if err != nil {
-				log.Println("└─ Unauthorized. DownloadPackageWithDependencies canceled.")
+				log.Println("└─ Unauthorized. Download canceled.")
 			}
 			requestBody := PackageRequestBody{
-				Name:    pack,
-				Vendor:  vendor,
-				Version: version}
+				Name:      pack,
+				Publisher: publisher,
+				Version:   version}
 
 			DownloadPackageWithDependencies("", requestBody, &config, jwt)
 		},
 	}
-	downloadCmd.Flags().StringVarP(&pack, "package", "p", "", "The name of the package")
-	downloadCmd.MarkFlagRequired("package")
-	downloadCmd.Flags().StringVarP(&vendor, "vendor", "v", "", "The name of the vendor")
-	downloadCmd.MarkFlagRequired("vendor")
-	downloadCmd.Flags().StringVarP(&version, "version", "s", "", "Version of the package")
-	downloadCmd.MarkFlagRequired("version")
+	downloadCmd.Flags().StringVarP(&pack, "package", "n", "", "The name of the package")
+	_ = downloadCmd.MarkFlagRequired("package")
+	downloadCmd.Flags().StringVarP(&publisher, "publisher", "p", "", "The name of the publisher")
+	_ = downloadCmd.MarkFlagRequired("publisher")
+	downloadCmd.Flags().StringVarP(&version, "version", "v", "", "Version of the package")
+	_ = downloadCmd.MarkFlagRequired("version")
 
 	var createRelease = &cobra.Command{
 		Use:   "create-release",
@@ -135,25 +131,25 @@ func init() {
 		},
 	}
 
-	var createVendor = &cobra.Command{
-		Use:   "create-vendor",
-		Short: "creates a new vendor and adds you to it as a member",
+	var createPublisher = &cobra.Command{
+		Use:   "create-publisher",
+		Short: "creates a new publisher and adds you to it as a member",
 		Run: func(cmd *cobra.Command, args []string) {
 			setupConfig()
-			if vendor == "" {
-				log.Println("Please specify a name for the new vendor.")
+			if publisher == "" {
+				log.Println("Please specify a name for the new publisher.")
 				return
 			}
 			jwt, err := SetUsernamePasswordIfNewAndPerformLogin(&config)
 
 			if err == nil {
-				rest.CreateVendor(&config, vendor, jwt)
+				rest.CreatePublisher(&config, publisher, jwt)
 			} else {
 				log.Println("login failed.")
 			}
 		},
 	}
-	createVendor.Flags().StringVarP(&vendor, "vendor", "v", "", "The name of the vendor")
+	createPublisher.Flags().StringVarP(&publisher, "publisher", "p", "", "The name of the publisher")
 
 	var publishPackage = &cobra.Command{
 		Use:   "publish-package",
@@ -168,36 +164,24 @@ func init() {
 			openId, err := rest.Login(&config)
 
 			if err == nil {
-				Publish(vendor, pack, version, accessLevel, &config, openId, force)
+				Publish(publisher, pack, version, accessLevel, &config, openId, force)
 			} else {
 				log.Println("login failed.")
 			}
 		},
 	}
-	publishPackage.Flags().StringVarP(&vendor, "vendor", "v", "", "The name of the vendor")
-	publishPackage.Flags().StringVarP(&pack, "package", "p", "", "The name of the package")
-	publishPackage.MarkFlagRequired("package")
-	publishPackage.Flags().StringVarP(&version,
-		"version",
-		"s",
-		"",
-		"Version of the package")
-	publishPackage.MarkFlagRequired("version")
-	publishPackage.Flags().StringVarP(&accessLevel,
-		"access-level",
-		"a",
-		"",
-		"The desired access level. Either vendor or public")
-	publishPackage.MarkFlagRequired("access-level")
-	publishPackage.Flags().BoolVarP(&force,
-		"force",
-		"f",
-		false,
-		"Set this flag to skip all prompts")
+	publishPackage.Flags().StringVarP(&publisher, "publisher", "p", "", "The name of the publisher")
+	publishPackage.Flags().StringVarP(&pack, "package", "n", "", "The name of the package")
+	_ = publishPackage.MarkFlagRequired("package")
+	publishPackage.Flags().StringVarP(&version, "version", "v", "", "Version of the package")
+	_ = publishPackage.MarkFlagRequired("version")
+	publishPackage.Flags().StringVarP(&accessLevel, "access-level", "a", "", "The desired access level. Either publisher or public")
+	_ = publishPackage.MarkFlagRequired("access-level")
+	publishPackage.Flags().BoolVarP(&force, "force", "f", false, "Set this flag to skip all prompts")
 
 	var searchByVendor = &cobra.Command{
-		Use:   "vendor-search",
-		Short: "search packages by a given vendor",
+		Use:   "search",
+		Short: "search packages by a given publisher",
 		Run: func(cmd *cobra.Command, args []string) {
 			setupConfig()
 			var jwt *gocloak.JWT
@@ -209,11 +193,17 @@ func init() {
 			if err != nil {
 				log.Println("login failed.")
 			}
-			SearchByVendor(vendor, &config, jwt)
+
+			if pack != "" {
+				SearchByPublisherAndName(publisher, pack, &config, jwt)
+			} else {
+				SearchByPublisher(publisher, &config, jwt)
+			}
 		},
 	}
-	searchByVendor.Flags().StringVarP(&vendor, "vendor", "v", "", "The name of the vendor")
-	searchByVendor.MarkFlagRequired("vendor")
+	searchByVendor.Flags().StringVarP(&pack, "name", "n", "", "The name of the publisher")
+	searchByVendor.Flags().StringVarP(&publisher, "publisher", "p", "", "The name of the publisher")
+	_ = searchByVendor.MarkFlagRequired("publisher")
 
 	var register = &cobra.Command{
 		Use:   "register",
@@ -227,7 +217,7 @@ func init() {
 	rootCmd.AddCommand(uploadCmd)
 	rootCmd.AddCommand(downloadCmd)
 	rootCmd.AddCommand(loginTest)
-	rootCmd.AddCommand(createVendor)
+	rootCmd.AddCommand(createPublisher)
 	rootCmd.AddCommand(publishPackage)
 	rootCmd.AddCommand(searchByVendor)
 	rootCmd.AddCommand(register)

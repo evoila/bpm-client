@@ -21,7 +21,7 @@ func DownloadPackageWithDependencies(depth string, requestBody PackageRequestBod
 		return
 	}
 
-	metaData := rest.GetMetaData(requestBody.Vendor, requestBody.Name, requestBody.Version, config, jwt)
+	metaData := rest.GetMetaData(requestBody.Publisher, requestBody.Name, requestBody.Version, config, jwt)
 	permission := rest.GetDownloadPermission(config, requestBody, jwt)
 
 	if metaData == nil {
@@ -67,9 +67,9 @@ func DownloadPackageWithDependencies(depth string, requestBody PackageRequestBod
 	for _, dependency := range metaData.Dependencies {
 
 		dependencyRequest := PackageRequestBody{
-			Name:    dependency.Name,
-			Version: dependency.Version,
-			Vendor:  dependency.Vendor}
+			Name:      dependency.Name,
+			Version:   dependency.Version,
+			Publisher: dependency.Publisher}
 		fmt.Println(depth + "├─ Handling dependency")
 
 		DownloadPackageWithDependencies(depth+"│  ", dependencyRequest, config, jwt)
@@ -84,9 +84,9 @@ func DownloadBySpec(spec DownloadSpec, config *Config, jwt *JWT) {
 
 		fmt.Println("┌─ Beginning with:")
 		request := PackageRequestBody{
-			Name:    packageReference.Name,
-			Version: packageReference.Version,
-			Vendor:  packageReference.Vendor}
+			Name:      packageReference.Name,
+			Version:   packageReference.Version,
+			Publisher: packageReference.Publisher}
 
 		DownloadPackageWithDependencies("", request, config, jwt)
 	}

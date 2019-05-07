@@ -69,21 +69,46 @@ func ReadAndValidateSpec(packageName string) (*SpecFile, string) {
 	var specFile SpecFile
 	err = Unmarshal(yamlFile, &specFile)
 
-	if specFile.Name == "" || specFile.Version == "" || specFile.Vendor == "" {
+	if specFile.Name == "" || specFile.Version == "" || specFile.Publisher == "" {
 		message := "The Specfile needs to specify package, version and vendor."
 
 		return nil, message
 	}
 
-	_, err = semver.Make(specFile.Version)
-
-	if err != nil {
+	if validateVersion(specFile.Version) {
 		message := "The Version of the package '" + packageName + "' is not Semver conform."
 
 		return nil, message
 	}
 
+	if specFile.Stemcell.MinorVersion != "" {
+		_, err = semver.Make(specFile.Stemcell.MinorVersion)
+
+		if validateVersion(specFile.Stemcell.MinorVersion) {
+			message := "The Stemcell Minor Version of the package '" + packageName + "' is not Semver conform."
+
+			return nil, message
+		}
+
+	}
+
+	if specFile.Stemcell.MinorVersion != "" {
+		_, err = semver.Make(specFile.Stemcell.MajorVersion)
+
+		if validateVersion(specFile.Stemcell.MajorVersion) {
+			message := "The Stemcell Major Version of the package '" + packageName + "' is not Semver conform."
+
+			return nil, message
+		}
+	}
+
 	return &specFile, ""
+}
+
+func validateVersion(version string) bool {
+	_, err := semver.Make(version)
+
+	return err != nil
 }
 
 func WriteConfig(config Config, configLocation string) {
@@ -130,9 +155,11 @@ func MoveToReleaseDir() {
 	os.Chdir(dir)
 }
 
-func AskUser(data MetaData, depth, message string) bool {
+func AskUser(data MetaData, depth, operation, message string) bool {
 
-	fmt.Println(depth + "├─ Update Package")
+	//"Update Package"
+
+	fmt.Println(depth + "├─ " + operation)
 	fmt.Println(data.String(depth))
 
 	scanner := bufio.NewScanner(os.Stdin)

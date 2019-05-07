@@ -89,11 +89,11 @@ func PutMetaData(url, location string, openId *gocloak.JWT, size int64) {
 	defer response.Body.Close()
 }
 
-func GetMetaData(vendor, name, version string, config *Config, openId *gocloak.JWT) *MetaData {
+func GetMetaData(publisher, name, version string, config *Config, openId *gocloak.JWT) *MetaData {
 
 	client := &Client{}
 
-	request, err := NewRequest("GET", BuildPath([]string{config.Url, "package", vendor, name, version}), nil)
+	request, err := NewRequest("GET", BuildPath([]string{config.Url, "package", publisher, name, version}), nil)
 	request.Header.Set("Content-Type", "application/json")
 
 	if openId != nil {
@@ -153,7 +153,7 @@ func GetMetaDataListForPackageName(name string, config *Config, openId *gocloak.
 
 func GetDownloadPermission(config *Config, requestBody PackageRequestBody, openId *gocloak.JWT) *S3Permission {
 
-	path := BuildPath([]string{config.Url, "download", requestBody.Vendor, requestBody.Name, requestBody.Version})
+	path := BuildPath([]string{config.Url, "download", requestBody.Publisher, requestBody.Name, requestBody.Version})
 	client := &Client{}
 
 	request, err := NewRequest("GET", path, nil)
@@ -186,9 +186,9 @@ func GetDownloadPermission(config *Config, requestBody PackageRequestBody, openI
 	return &permission
 }
 
-func CreateVendor(config *Config, name string, jwt *gocloak.JWT) {
+func CreatePublisher(config *Config, name string, jwt *gocloak.JWT) {
 
-	path := BuildPath([]string{config.Url, "vendors?name=" + name})
+	path := BuildPath([]string{config.Url, "publishers?name=" + name})
 	request, _ := NewRequest("POST", path, nil)
 	request.Header.Set("Authorization", "bearer "+jwt.AccessToken)
 
@@ -200,7 +200,7 @@ func CreateVendor(config *Config, name string, jwt *gocloak.JWT) {
 	}
 
 	if response.StatusCode == 201 {
-		log.Println("Vendor " + name + " created.")
+		log.Println("Publisher " + name + " created.")
 		return
 	}
 
@@ -218,8 +218,32 @@ func PublishPackage(id, accessLevel string, config *Config, openId *gocloak.JWT)
 	return response.StatusCode == 200
 }
 
-func GetMetaDataListByVendor(config *Config, openId *gocloak.JWT, vendor string) (*PaginatedMetaData, int) {
-	path := BuildPath([]string{config.Url, "rest", "packages", vendor})
+func GetMetaDataListByPublisher(config *Config, openId *gocloak.JWT, publisher string) (*PaginatedMetaData, int) {
+	path := BuildPath([]string{config.Url, "rest", "packages", publisher})
+	request, _ := NewRequest("GET", path, nil)
+
+	if openId != nil {
+		request.Header.Set("Authorization", "bearer "+openId.AccessToken)
+	}
+	client := &Client{}
+	response, _ := client.Do(request)
+
+	if response.StatusCode == 200 {
+		defer response.Body.Close()
+		responseBody, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			log.Fatal(err)
+		}
+		var paginatedMetaData PaginatedMetaData
+		err = Unmarshal(responseBody, &paginatedMetaData)
+		return &paginatedMetaData, response.StatusCode
+	}
+
+	return nil, response.StatusCode
+}
+
+func GetMetaDataListByPublisherAndName(config *Config, openId *gocloak.JWT, publisher, name  string) (*PaginatedMetaData, int) {
+	path := BuildPath([]string{config.Url, "rest", "packages", publisher, name})
 	request, _ := NewRequest("GET", path, nil)
 
 	if openId != nil {
@@ -282,7 +306,7 @@ func buildBody(data MetaData) ([]byte, error) {
 	requestBody := requestBody{
 		Name:         data.Name,
 		Version:      data.Version,
-		Vendor:       data.Vendor,
+		Publisher:    data.Publisher,
 		Files:        data.Files,
 		Dependencies: data.Dependencies,
 		Description:  data.Description,
@@ -296,7 +320,7 @@ func buildBody(data MetaData) ([]byte, error) {
 type requestBody struct {
 	Name         string              `json:"name"`
 	Version      string              `json:"version"`
-	Vendor       string              `json:"vendor"`
+	Publisher    string              `json:"publisher"`
 	Description  string              `json:"description"`
 	Files        []string            `json:"files"`
 	Dependencies []PackagesReference `json:"dependencies"`

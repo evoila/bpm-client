@@ -26,14 +26,14 @@ func RunUpdateIfPackagePresentUploadIfNot(packageName string, config *Config, jw
 		return
 	}
 
-	metaData := GetMetaData(specFile.Vendor, packageName, specFile.Version, config, jwt)
+	metaData := GetMetaData(specFile.Publisher, packageName, specFile.Version, config, jwt)
 
 	if metaData == nil {
 		fmt.Println("Specified package not found. Uploading instead of updating.")
 
 		CheckIfAlreadyPresentAndUpload(packageName, config, jwt)
 	} else {
-		upload(packageName, specFile.Vendor, "", true, config, jwt)
+		upload(packageName, specFile.Publisher, "", true, config, jwt)
 	}
 }
 
@@ -49,11 +49,11 @@ func CheckIfAlreadyPresentAndUpload(packageName string, config *Config, jwt *goc
 	metaData := GetMetaDataListForPackageName(packageName, config, jwt)
 
 	if len(metaData) < 1 || askOperatorForProcedure(metaData) {
-		upload(packageName, specFile.Vendor, "", false, config, jwt)
+		upload(packageName, specFile.Publisher, "", false, config, jwt)
 	}
 }
 
-func upload(packageName, vendor, depth string, update bool, config *Config, openId *gocloak.JWT)  {
+func upload(packageName, publisher, depth string, update bool, config *Config, openId *gocloak.JWT) {
 
 	if set.Get(packageName) {
 		fmt.Println(depth + "└─  PackagesReference " + packageName + " already handled")
@@ -82,7 +82,7 @@ func upload(packageName, vendor, depth string, update bool, config *Config, open
 	result := MetaData{
 		Name:         packageName,
 		Version:      specFile.Version,
-		Vendor:       vendor,
+		Publisher:    publisher,
 		FilePath:     pack,
 		Files:        specFile.Files,
 		Dependencies: dependencies,
@@ -92,7 +92,7 @@ func upload(packageName, vendor, depth string, update bool, config *Config, open
 
 	var permission, oldMeta = RequestPermission(result, false, config, openId)
 
-	if update && oldMeta != nil && AskUser(*oldMeta, depth, "│  This will alter the package with all dependencies. Are you sure? ") {
+	if update && oldMeta != nil && AskUser(*oldMeta, depth, "Update Package", "│  This will alter the access to the package with all dependencies. Are you sure? ") {
 		permission, _ = RequestPermission(result, true, config, openId)
 	}
 
@@ -131,16 +131,16 @@ func upload(packageName, vendor, depth string, update bool, config *Config, open
 		for _, dependency := range result.Dependencies {
 			fmt.Println(depth + "├─ Handling dependency")
 
-			upload(dependency.Name, dependency.Vendor, "│  "+depth, update, config, openId)
+			upload(dependency.Name, dependency.Publisher, "│  "+depth, update, config, openId)
 		}
 
 		fmt.Println(depth + "└─ Finished packing: " + packageName)
 
 	} else {
 		if oldMeta != nil {
-			fmt.Println(depth + "└─ Skipped. Already present. Use update if you want to replace it")
+			fmt.Println(depth + "└─ Skipped. Already present. Use update if you want to replace it.")
 		} else {
-			fmt.Println(depth + "└─ Skipped. Not a Member of the Vendor: " + result.Vendor)
+			fmt.Println(depth + "└─ Skipped. Not a member of the publisher: " + result.Publisher)
 		}
 	}
 }
@@ -177,9 +177,9 @@ func readDependencies(specFile SpecFile) ([]PackagesReference, string) {
 		}
 
 		dependencies = append(dependencies, PackagesReference{
-			Name:    dependencySpec.Name,
-			Version: dependencySpec.Version,
-			Vendor:  dependencySpec.Vendor}, )
+			Name:      dependencySpec.Name,
+			Version:   dependencySpec.Version,
+			Publisher: dependencySpec.Publisher}, )
 	}
 
 	return dependencies, ""
