@@ -71,7 +71,7 @@ func init() {
 				log.Println("└─ Unauthorized. Download canceled.")
 			}
 
-			var requestBody PackageRequestBody
+			var requestBody PackagesReference
 
 			if pack == "" || publisher == "" || version == "" {
 				publisher, pack, version, err = helpers.SplitPackageReference(args[0])
@@ -81,7 +81,7 @@ func init() {
 				}
 			}
 
-			requestBody = PackageRequestBody{
+			requestBody = PackagesReference{
 				Name:      pack,
 				Publisher: publisher,
 				Version:   version}
@@ -121,7 +121,6 @@ func init() {
 			}
 
 			DownloadBySpec(*downloadSpec, &config, jwt)
-
 		},
 	}
 
@@ -175,7 +174,23 @@ func init() {
 			openId, err := rest.Login(&config)
 
 			if err == nil {
-				Publish(publisher, pack, version, accessLevel, &config, openId, force)
+
+				var requestBody PackagesReference
+
+				if pack == "" || publisher == "" || version == "" {
+					publisher, pack, version, err = helpers.SplitPackageReference(args[0])
+
+					if err != nil {
+						log.Print("Invalid input.")
+					}
+				}
+
+				requestBody = PackagesReference{
+					Name:      pack,
+					Publisher: publisher,
+					Version:   version}
+
+				Publish(requestBody, accessLevel, &config, openId, force)
 			} else {
 				log.Println("login failed.")
 			}
@@ -183,9 +198,7 @@ func init() {
 	}
 	publishPackage.Flags().StringVarP(&publisher, "publisher", "p", "", "The name of the publisher")
 	publishPackage.Flags().StringVarP(&pack, "package", "n", "", "The name of the package")
-	_ = publishPackage.MarkFlagRequired("package")
 	publishPackage.Flags().StringVarP(&version, "version", "v", "", "Version of the package")
-	_ = publishPackage.MarkFlagRequired("version")
 	publishPackage.Flags().StringVarP(&accessLevel, "access-level", "a", "", "The desired access level. Either publisher or public")
 	_ = publishPackage.MarkFlagRequired("access-level")
 	publishPackage.Flags().BoolVarP(&force, "force", "f", false, "Set this flag to skip all prompts")

@@ -19,10 +19,13 @@ func RequestPermission(data MetaData, force bool, config *Config, openId *gocloa
 	body, err := buildBody(data)
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	request, err := NewRequest("POST", BuildPath([]string{config.Url, "upload/permission?force=" + strconv.FormatBool(force)}), NewBuffer(body))
+	if err != nil {
+		log.Fatal(err)
+	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Authorization", "bearer "+openId.AccessToken)
 
@@ -74,6 +77,10 @@ func PutMetaData(url, location string, openId *gocloak.JWT, size int64) {
 
 	path := BuildPath([]string{url, "package?location=" + location + "&size=" + strconv.FormatInt(size, 10)})
 	request, err := NewRequest("PUT", path, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	request.Header.Set("Content-Type", "application/json")
 
 	if openId != nil {
@@ -89,11 +96,15 @@ func PutMetaData(url, location string, openId *gocloak.JWT, size int64) {
 	defer response.Body.Close()
 }
 
-func GetMetaData(publisher, name, version string, config *Config, openId *gocloak.JWT) *MetaData {
+func GetMetaData(requestBody PackagesReference, config *Config, openId *gocloak.JWT) *MetaData {
 
 	client := &Client{}
 
-	request, err := NewRequest("GET", BuildPath([]string{config.Url, "package", publisher, name, version}), nil)
+	request, err := NewRequest("GET", BuildPath([]string{config.Url, "package", requestBody.Publisher, requestBody.Name, requestBody.Version}), nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	request.Header.Set("Content-Type", "application/json")
 
 	if openId != nil {
@@ -105,9 +116,6 @@ func GetMetaData(publisher, name, version string, config *Config, openId *gocloa
 		log.Fatal(err)
 	}
 
-	if err != nil {
-		panic(err)
-	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 200 {
@@ -118,7 +126,7 @@ func GetMetaData(publisher, name, version string, config *Config, openId *gocloa
 		err = Unmarshal(responseBody, &metaData)
 
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 
 		return &metaData
@@ -129,6 +137,9 @@ func GetMetaData(publisher, name, version string, config *Config, openId *gocloa
 
 func GetMetaDataListForPackageName(name string, config *Config, openId *gocloak.JWT) []MetaData {
 	request, err := NewRequest("GET", BuildPath([]string{config.Url, "package?name=" + name}), nil)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	if openId != nil {
 		request.Header.Set("Authorization", "bearer "+openId.AccessToken)
@@ -137,7 +148,7 @@ func GetMetaDataListForPackageName(name string, config *Config, openId *gocloak.
 	response, err := client.Do(request)
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	defer response.Body.Close()
 	responseBody, err := ioutil.ReadAll(response.Body)
@@ -151,12 +162,15 @@ func GetMetaDataListForPackageName(name string, config *Config, openId *gocloak.
 	return metaData
 }
 
-func GetDownloadPermission(config *Config, requestBody PackageRequestBody, openId *gocloak.JWT) *S3Permission {
-
+func GetDownloadPermission(config *Config, requestBody PackagesReference, openId *gocloak.JWT) *S3Permission {
 	path := BuildPath([]string{config.Url, "download", requestBody.Publisher, requestBody.Name, requestBody.Version})
 	client := &Client{}
 
 	request, err := NewRequest("GET", path, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	request.Header.Set("Content-Type", "application/json")
 
 	if openId != nil {
@@ -166,7 +180,7 @@ func GetDownloadPermission(config *Config, requestBody PackageRequestBody, openI
 	resp, err := client.Do(request)
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	defer resp.Body.Close()
 
@@ -180,7 +194,7 @@ func GetDownloadPermission(config *Config, requestBody PackageRequestBody, openI
 	err = Unmarshal(responseBody, &permission)
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	return &permission
@@ -189,14 +203,18 @@ func GetDownloadPermission(config *Config, requestBody PackageRequestBody, openI
 func CreatePublisher(config *Config, name string, jwt *gocloak.JWT) {
 
 	path := BuildPath([]string{config.Url, "publishers?name=" + name})
-	request, _ := NewRequest("POST", path, nil)
+	request, err := NewRequest("POST", path, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	request.Header.Set("Authorization", "bearer "+jwt.AccessToken)
 
 	client := &Client{}
 	response, err := client.Do(request)
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	if response.StatusCode == 201 {
@@ -242,7 +260,7 @@ func GetMetaDataListByPublisher(config *Config, openId *gocloak.JWT, publisher s
 	return nil, response.StatusCode
 }
 
-func GetMetaDataListByPublisherAndName(config *Config, openId *gocloak.JWT, publisher, name  string) (*PaginatedMetaData, int) {
+func GetMetaDataListByPublisherAndName(config *Config, openId *gocloak.JWT, publisher, name string) (*PaginatedMetaData, int) {
 	path := BuildPath([]string{config.Url, "rest", "packages", publisher, name})
 	request, _ := NewRequest("GET", path, nil)
 

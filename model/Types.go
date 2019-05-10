@@ -82,7 +82,7 @@ func formatStringArray(stringArray []string, depth string) string {
 
 func (d PackagesReference) String() string {
 
-	return d.Name + ":" + d.Version + " by " + d.Publisher
+	return d.Publisher + ":" + d.Name + ":" + d.Version
 }
 
 type SpecFile struct {
@@ -113,12 +113,6 @@ type S3Permission struct {
 	SessionToken string `json:"session-token"`
 }
 
-type PackageRequestBody struct {
-	Name      string `json:"name"`
-	Version   string `json:"version"`
-	Publisher string `json:"publisher"`
-}
-
 type Page struct {
 	Size          int `json:"size"`
 	TotalElements int `json:"totalElements"`
@@ -144,10 +138,10 @@ type ResponseBody struct {
 }
 
 type MetaData struct {
-	Id           string
-	Name         string              `json:"name"`
-	Version      string              `json:"version"`
-//	Mirrors      []string            `json:"mirrors"`
+	Id      string
+	Name    string `json:"name"`
+	Version string `json:"version"`
+	//	Mirrors      []string            `json:"mirrors"`
 	Publisher    string              `json:"publisher"`
 	FilePath     string              `json:"file_path"`
 	UploadDate   string              `json:"upload_date"`
@@ -163,7 +157,7 @@ type PackagesReference struct {
 	Name      string `json:"name"`
 	Version   string `json:"version"`
 	Publisher string `json:"publisher"`
-//	Mirror    string `json:"mirror"`
+	//	Mirror    string `json:"mirror"`
 }
 
 type Stemcell struct {

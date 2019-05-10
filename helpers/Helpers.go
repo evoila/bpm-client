@@ -8,6 +8,7 @@ import (
 	. "github.com/evoila/BPM-Client/model"
 	. "gopkg.in/yaml.v2"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 )
@@ -126,12 +127,12 @@ func WriteConfig(config Config, configLocation string) {
 	data, err := Marshal(config)
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	err = ioutil.WriteFile(configLocation, data, 0644)
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }
 
@@ -139,7 +140,7 @@ func ReadConfig(configLocation string) Config {
 
 	yamlFile, err := ioutil.ReadFile(configLocation)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	var config Config
@@ -147,7 +148,7 @@ func ReadConfig(configLocation string) Config {
 	err = Unmarshal(yamlFile, &config)
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	return config
@@ -160,10 +161,11 @@ func BuildPath(path []string) string {
 
 func MoveToReleaseDir() {
 	dir, err := os.Getwd()
+	err = os.Chdir(dir)
+
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
-	os.Chdir(dir)
 }
 
 func AskUser(data MetaData, depth, operation, message string) bool {

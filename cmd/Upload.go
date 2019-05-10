@@ -10,6 +10,7 @@ import (
 	. "github.com/evoila/BPM-Client/model"
 	. "github.com/evoila/BPM-Client/rest"
 	. "github.com/evoila/BPM-Client/s3"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -26,7 +27,12 @@ func RunUpdateIfPackagePresentUploadIfNot(packageName string, config *Config, jw
 		return
 	}
 
-	metaData := GetMetaData(specFile.Publisher, packageName, specFile.Version, config, jwt)
+	packageReference := PackagesReference{
+		Publisher: specFile.Publisher,
+		Name:      packageName,
+		Version:   specFile.Version}
+
+	metaData := GetMetaData(packageReference, config, jwt)
 
 	if metaData == nil {
 		fmt.Println("Specified package not found. Uploading instead of updating.")
@@ -56,7 +62,7 @@ func CheckIfAlreadyPresentAndUpload(packageName string, config *Config, jwt *goc
 func upload(packageName, publisher, depth string, update bool, config *Config, openId *gocloak.JWT) {
 
 	if set.Get(packageName) {
-		fmt.Println(depth + "└─  PackagesReference " + packageName + " already handled")
+		fmt.Println(depth + "└─  Dependency " + packageName + " already handled")
 		return
 	}
 
@@ -76,7 +82,7 @@ func upload(packageName, publisher, depth string, update bool, config *Config, o
 	dependencies, errMessage := readDependencies(*specFile)
 
 	if errMessage != "" {
-		fmt.Println(depth + "└─  Error in PackagesReference: " + errMessage)
+		fmt.Println(depth + "└─  Error in Dependency: " + errMessage)
 	}
 
 	result := MetaData{
@@ -100,7 +106,7 @@ func upload(packageName, publisher, depth string, update bool, config *Config, o
 
 		filesToZip, err := ScanPackageFolder(packageName)
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 
 		filesToZip = MergeStringList(filesToZip, ScanFolderAndFilter(specFile.Files, "./blobs/"))
@@ -110,19 +116,19 @@ func upload(packageName, publisher, depth string, update bool, config *Config, o
 		defer func() {
 			err = os.Remove(result.FilePath)
 			if err != nil {
-				panic(err)
+				log.Fatal(err)
 			}
 		}()
 
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 
 		fmt.Println(depth + "├─ Upload package. Size " + strconv.FormatInt(size/1000000, 10) + "MB")
 
 		err = UploadFile(result.FilePath, depth+"├─", *permission)
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 
 		PutMetaData(config.Url, permission.S3location, openId, size)

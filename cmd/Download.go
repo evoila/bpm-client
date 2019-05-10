@@ -8,11 +8,12 @@ import (
 	. "github.com/evoila/BPM-Client/model"
 	"github.com/evoila/BPM-Client/rest"
 	"github.com/evoila/BPM-Client/s3"
+	"log"
 	"os"
 	"strconv"
 )
 
-func DownloadPackageWithDependencies(depth string, requestBody PackageRequestBody, config *Config, jwt *JWT) {
+func DownloadPackageWithDependencies(depth string, requestBody PackagesReference, config *Config, jwt *JWT) {
 
 	stat, _ := os.Stat(BuildPath([]string{"packages", requestBody.Name}))
 
@@ -21,7 +22,7 @@ func DownloadPackageWithDependencies(depth string, requestBody PackageRequestBod
 		return
 	}
 
-	metaData := rest.GetMetaData(requestBody.Publisher, requestBody.Name, requestBody.Version, config, jwt)
+	metaData := rest.GetMetaData(requestBody, config, jwt)
 	permission := rest.GetDownloadPermission(config, requestBody, jwt)
 
 	if metaData == nil {
@@ -42,37 +43,32 @@ func DownloadPackageWithDependencies(depth string, requestBody PackageRequestBod
 		"  ", *permission)
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	destination, err := os.Getwd()
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	err = UnzipPackage(requestBody.Name+".bpm", destination)
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	defer func() {
 		err = os.Remove(requestBody.Name + ".bpm")
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 	}()
 
 	for _, dependency := range metaData.Dependencies {
-
-		dependencyRequest := PackageRequestBody{
-			Name:      dependency.Name,
-			Version:   dependency.Version,
-			Publisher: dependency.Publisher}
 		fmt.Println(depth + "├─ Handling dependency")
 
-		DownloadPackageWithDependencies(depth+"│  ", dependencyRequest, config, jwt)
+		DownloadPackageWithDependencies(depth+"│  ", dependency, config, jwt)
 	}
 
 	fmt.Println(depth + "└─ Finished package: " + requestBody.Name)
@@ -81,13 +77,8 @@ func DownloadPackageWithDependencies(depth string, requestBody PackageRequestBod
 func DownloadBySpec(spec DownloadSpec, config *Config, jwt *JWT) {
 
 	for _, packageReference := range spec.Packages {
-
 		fmt.Println("┌─ Beginning with:")
-		request := PackageRequestBody{
-			Name:      packageReference.Name,
-			Version:   packageReference.Version,
-			Publisher: packageReference.Publisher}
 
-		DownloadPackageWithDependencies("", request, config, jwt)
+		DownloadPackageWithDependencies("", packageReference, config, jwt)
 	}
 }
