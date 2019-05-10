@@ -19,8 +19,8 @@ var rootCmd = &cobra.Command{
 	Use:   "BPM-Client",
 	Short: "CLI Tool to access Bosh Package Manager",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Please specify one command of: upload, update," +
-			" download, delete, publisher-search, publish or create-publisher")
+		fmt.Println("Please specify one command of: upload," +
+			" download, delete, create-release, search, publish or create-publisher")
 	},
 }
 
@@ -160,7 +160,6 @@ func init() {
 		},
 	}
 	createPublisher.Flags().StringVarP(&publisher, "publisher", "p", "", "The name of the publisher")
-
 	var publishPackage = &cobra.Command{
 		Use:   "publish-package",
 		Short: "publish a package you own",
@@ -189,7 +188,6 @@ func init() {
 					Name:      pack,
 					Publisher: publisher,
 					Version:   version}
-
 				Publish(requestBody, accessLevel, &config, openId, force)
 			} else {
 				log.Println("login failed.")
@@ -203,7 +201,7 @@ func init() {
 	_ = publishPackage.MarkFlagRequired("access-level")
 	publishPackage.Flags().BoolVarP(&force, "force", "f", false, "Set this flag to skip all prompts")
 
-	var searchByVendor = &cobra.Command{
+	var search = &cobra.Command{
 		Use:   "search",
 		Short: "search packages by a given publisher",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -225,9 +223,9 @@ func init() {
 			}
 		},
 	}
-	searchByVendor.Flags().StringVarP(&pack, "name", "n", "", "The name of the publisher")
-	searchByVendor.Flags().StringVarP(&publisher, "publisher", "p", "", "The name of the publisher")
-	_ = searchByVendor.MarkFlagRequired("publisher")
+	search.Flags().StringVarP(&pack, "name", "n", "", "The name of the publisher")
+	search.Flags().StringVarP(&publisher, "publisher", "p", "", "The name of the publisher")
+	_ = search.MarkFlagRequired("publisher")
 
 	var register = &cobra.Command{
 		Use:   "register",
@@ -243,14 +241,13 @@ func init() {
 	rootCmd.AddCommand(loginTest)
 	rootCmd.AddCommand(createPublisher)
 	rootCmd.AddCommand(publishPackage)
-	rootCmd.AddCommand(searchByVendor)
+	rootCmd.AddCommand(search)
 	rootCmd.AddCommand(register)
 	rootCmd.AddCommand(createRelease)
 }
 
 func setupConfig() {
 	configLocation := os.Getenv("BOSH_PACKAGE_MANAGER_CONFIG")
-
 	config = helpers.ReadConfig(configLocation)
 	helpers.MoveToReleaseDir()
 }
