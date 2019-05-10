@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"github.com/blang/semver"
 	. "github.com/evoila/BPM-Client/model"
@@ -10,6 +11,16 @@ import (
 	"os"
 	"strings"
 )
+
+func SplitPackageReference(input string) (string, string, string, error) {
+	result := strings.Split(input, ":")
+
+	if len(result) != 3 {
+		return "", "", "", errors.New("invalid input")
+	}
+
+	return result[0], result[1], result[2], nil
+}
 
 func MergeStringList(l1, l2 []string) []string {
 

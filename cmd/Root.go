@@ -70,7 +70,18 @@ func init() {
 			if err != nil {
 				log.Println("└─ Unauthorized. Download canceled.")
 			}
-			requestBody := PackageRequestBody{
+
+			var requestBody PackageRequestBody
+
+			if pack == "" || publisher == "" || version == "" {
+				publisher, pack, version, err = helpers.SplitPackageReference(args[0])
+
+				if err != nil {
+					log.Print("Invalid input.")
+				}
+			}
+
+			requestBody = PackageRequestBody{
 				Name:      pack,
 				Publisher: publisher,
 				Version:   version}
@@ -79,11 +90,11 @@ func init() {
 		},
 	}
 	downloadCmd.Flags().StringVarP(&pack, "package", "n", "", "The name of the package")
-	_ = downloadCmd.MarkFlagRequired("package")
+	//	_ = downloadCmd.MarkFlagRequired("package")
 	downloadCmd.Flags().StringVarP(&publisher, "publisher", "p", "", "The name of the publisher")
-	_ = downloadCmd.MarkFlagRequired("publisher")
+	//	_ = downloadCmd.MarkFlagRequired("publisher")
 	downloadCmd.Flags().StringVarP(&version, "version", "v", "", "Version of the package")
-	_ = downloadCmd.MarkFlagRequired("version")
+	//	_ = downloadCmd.MarkFlagRequired("version")
 
 	var createRelease = &cobra.Command{
 		Use:   "create-release",
