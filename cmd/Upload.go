@@ -19,7 +19,6 @@ import (
 var set = NewStringSet()
 
 func RunUpdateIfPackagePresentUploadIfNot(packageName string, config *Config, jwt *gocloak.JWT) {
-
 	specFile, errMessage := ReadAndValidateSpec(packageName)
 
 	if errMessage != "" {
@@ -31,7 +30,6 @@ func RunUpdateIfPackagePresentUploadIfNot(packageName string, config *Config, jw
 		Publisher: specFile.Publisher,
 		Name:      packageName,
 		Version:   specFile.Version}
-
 	metaData := GetMetaData(packageReference, config, jwt)
 
 	if metaData == nil {
@@ -60,16 +58,13 @@ func CheckIfAlreadyPresentAndUpload(packageName string, config *Config, jwt *goc
 }
 
 func upload(packageName, publisher, depth string, update bool, config *Config, openId *gocloak.JWT) {
-
 	if set.Get(packageName) {
 		fmt.Println(depth + "└─  Dependency " + packageName + " already handled")
 		return
 	}
 
 	set.Add(packageName)
-
 	fmt.Println(depth + "├─ Packing: " + packageName)
-
 	specFile, errMessage := ReadAndValidateSpec(packageName)
 
 	if errMessage != "" {
@@ -78,7 +73,6 @@ func upload(packageName, publisher, depth string, update bool, config *Config, o
 	}
 
 	pack := "./" + packageName + ".bpm"
-
 	dependencies, errMessage := readDependencies(*specFile)
 
 	if errMessage != "" {
@@ -125,8 +119,8 @@ func upload(packageName, publisher, depth string, update bool, config *Config, o
 		}
 
 		fmt.Println(depth + "├─ Upload package. Size " + strconv.FormatInt(size/1000000, 10) + "MB")
-
 		err = UploadFile(result.FilePath, depth+"├─", *permission)
+
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -152,7 +146,6 @@ func upload(packageName, publisher, depth string, update bool, config *Config, o
 }
 
 func askOperatorForProcedure(data []MetaData) bool {
-
 	fmt.Println("│  Found fhe following packages with similar or same content")
 
 	for _, d := range data {
@@ -172,7 +165,6 @@ func askOperatorForProcedure(data []MetaData) bool {
 }
 
 func readDependencies(specFile SpecFile) ([]PackagesReference, string) {
-
 	var dependencies []PackagesReference
 
 	for _, d := range specFile.Dependencies {

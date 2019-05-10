@@ -51,7 +51,7 @@ func MergeMetaDataList(l1, l2 []MetaData) []MetaData {
 
 func ReadDownloadSpec() (*DownloadSpec, string) {
 
-	yamlFile, err := ioutil.ReadFile("./packages/download.spec")
+	yamlFile, err := ioutil.ReadFile("./packages/packages.spec")
 	if err != nil {
 		message := "Did not find a download.spec file."
 

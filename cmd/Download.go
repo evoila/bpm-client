@@ -78,7 +78,6 @@ func DownloadBySpec(spec DownloadSpec, config *Config, jwt *JWT) {
 
 	for _, packageReference := range spec.Packages {
 		fmt.Println("┌─ Beginning with:")
-
 		DownloadPackageWithDependencies("", packageReference, config, jwt)
 	}
 }
