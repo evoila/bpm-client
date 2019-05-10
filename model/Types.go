@@ -52,7 +52,7 @@ func (m MetaData) String(depth string) string {
 
 	return depth + "│  Name:           " + m.Name + "\n" +
 		depth + "│  Version:        " + m.Version + "\n" +
-		depth + "│  Publisher:         " + m.Publisher + "\n" +
+		depth + "│  Publisher:      " + m.Publisher + "\n" +
 		depth + "│  UploadDate:     " + m.UploadDate + "\n" +
 		depth + "│  Files:          " + formatStringArray(m.Files, depth) +
 		depth + "│  URL:            " + m.Url + "\n" +
