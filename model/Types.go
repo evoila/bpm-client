@@ -1,7 +1,6 @@
 package model
 
 import (
-	"strconv"
 	"strings"
 )
 
@@ -26,10 +25,10 @@ func (m MetaData) String2() string {
 
 	return "│  Name:           " + m.Name + "\n" +
 		"│  Version:        " + m.Version + "\n" +
-		"│  Vendor:         " + m.Vendor + "\n" +
+		"│  Publisher:      " + m.Publisher + "\n" +
 		"│  UploadDate:     " + m.UploadDate + "\n" +
 		"│  Files:          " + formatStringArray(m.Files, "") +
-		"|  URL:            " + m.Url + "\n" +
+		"│  URL:            " + m.Url + "\n" +
 		"│  Dependencies:   " + formatStringArray(dependenciesAsStrings, "") +
 		stemcellString
 }
@@ -53,7 +52,7 @@ func (m MetaData) String(depth string) string {
 
 	return depth + "│  Name:           " + m.Name + "\n" +
 		depth + "│  Version:        " + m.Version + "\n" +
-		depth + "│  Vendor:         " + m.Vendor + "\n" +
+		depth + "│  Publisher:      " + m.Publisher + "\n" +
 		depth + "│  UploadDate:     " + m.UploadDate + "\n" +
 		depth + "│  Files:          " + formatStringArray(m.Files, depth) +
 		depth + "│  URL:            " + m.Url + "\n" +
@@ -69,8 +68,8 @@ func (s Stemcell) stringFormat(depth string) string {
 
 	return depth + "│  Stemcell:       " + "\n" +
 		depth + "│   Family:        " + s.Family + "\n" +
-		depth + "│   Major Version: " + strconv.Itoa(s.MajorVersion) + "\n" +
-		depth + "│   Minor Version: " + strconv.Itoa(s.MinorVersion)
+		depth + "│   Major Version: " + s.MajorVersion + "\n" +
+		depth + "│   Minor Version: " + s.MinorVersion
 }
 
 func formatStringArray(stringArray []string, depth string) string {
@@ -83,13 +82,13 @@ func formatStringArray(stringArray []string, depth string) string {
 
 func (d PackagesReference) String() string {
 
-	return d.Name + ":" + d.Version + " by " + d.Vendor
+	return d.Publisher + ":" + d.Name + ":" + d.Version
 }
 
 type SpecFile struct {
-	Name, Version, Vendor, Description, Url string
-	Stemcell                                Stemcell
-	Files, Dependencies                     []string
+	Name, Version, Publisher, Description, Url string
+	Stemcell                                   Stemcell
+	Files, Dependencies                        []string
 }
 
 type BackupResponse struct {
@@ -114,12 +113,6 @@ type S3Permission struct {
 	SessionToken string `json:"session-token"`
 }
 
-type PackageRequestBody struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
-	Vendor  string `json:"vendor"`
-}
-
 type Page struct {
 	Size          int `json:"size"`
 	TotalElements int `json:"totalElements"`
@@ -139,17 +132,17 @@ type PaginatedMetaData struct {
 type ResponseBody struct {
 	Name       string   `json:"name"`
 	Version    string   `json:"version"`
-	Vendor     string   `json:"vendor"`
+	Publisher  string   `json:"publisher"`
 	S3location string   `json:"s3location"`
 	Files      []string `json:"files"`
 }
 
 type MetaData struct {
-	Id           string
-	Name         string              `json:"name"`
-	Version      string              `json:"version"`
-	Mirrors      []string            `json:"mirrors"`
-	Vendor       string              `json:"vendor"`
+	Id      string
+	Name    string `json:"name"`
+	Version string `json:"version"`
+	//	Mirrors      []string            `json:"mirrors"`
+	Publisher    string              `json:"publisher"`
 	FilePath     string              `json:"file_path"`
 	UploadDate   string              `json:"upload_date"`
 	Description  string              `json:"description"`
@@ -161,16 +154,16 @@ type MetaData struct {
 }
 
 type PackagesReference struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
-	Vendor  string `json:"vendor"`
-	Mirror  string `json:"mirror"`
+	Name      string `json:"name"`
+	Version   string `json:"version"`
+	Publisher string `json:"publisher"`
+	//	Mirror    string `json:"mirror"`
 }
 
 type Stemcell struct {
 	Family       string `json:"family"`
-	MajorVersion int    `json:"major_version"`
-	MinorVersion int    `json:"minor_version"`
+	MajorVersion string `json:"major_version"`
+	MinorVersion string `json:"minor_version"`
 }
 
 type DownloadSpec struct {

@@ -9,8 +9,8 @@ import (
 	"strings"
 )
 
-func Publish(vendor, name, version string, accessLevelInput string, config *Config, jwt *gocloak.JWT, force bool) {
-	var meta = GetMetaData(vendor, name, version, config, jwt)
+func Publish(packageReference PackagesReference, accessLevelInput string, config *Config, jwt *gocloak.JWT, force bool) {
+	var meta = GetMetaData(packageReference, config, jwt)
 
 	if meta == nil {
 		fmt.Println("Package not found. Aborting.")
@@ -20,18 +20,17 @@ func Publish(vendor, name, version string, accessLevelInput string, config *Conf
 	var accessLevel = validateAndCorrectAccessLevelInput(accessLevelInput)
 
 	if accessLevel == nil {
-		fmt.Println("Not a valid AccessType. Please enter 'vendor' or 'public'.")
+		fmt.Println("Not a valid AccessType. Please enter 'publisher' or 'public'.")
 		return
 	}
 
-	if force || helpers.AskUser(*meta, "", "The package "+meta.Name+" and all it's dependencies by your vendors will be published. Are you sure?") {
+	if force || helpers.AskUser(*meta, "", "Publish Package", "├─ The package "+meta.Name+" and all it's dependencies by your vendors will be published. Are you sure?") {
 
 		if PublishPackage(meta.Id, *accessLevel, config, jwt) {
-			fmt.Println("Package published.")
+			fmt.Println("Package '" + packageReference.String() + "' published.")
 		} else {
 			fmt.Println("Something went wrong!")
 		}
-
 	} else {
 		fmt.Println("Aborting.")
 	}
@@ -41,7 +40,7 @@ func validateAndCorrectAccessLevelInput(accessLevelInput string) *string {
 
 	var result = strings.ToUpper(accessLevelInput)
 
-	if result != "VENDOR" && result != "PUBLIC" {
+	if result != "PUBLISHER" && result != "PUBLIC" {
 		return nil
 	}
 

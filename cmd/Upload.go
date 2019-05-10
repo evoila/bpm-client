@@ -10,6 +10,7 @@ import (
 	. "github.com/evoila/BPM-Client/model"
 	. "github.com/evoila/BPM-Client/rest"
 	. "github.com/evoila/BPM-Client/s3"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -18,22 +19,25 @@ import (
 var set = NewStringSet()
 
 func RunUpdateIfPackagePresentUploadIfNot(packageName string, config *Config, jwt *gocloak.JWT) {
-
 	specFile, errMessage := ReadAndValidateSpec(packageName)
 
-	if errMessage != nil {
+	if errMessage != "" {
 		fmt.Println(errMessage)
 		return
 	}
 
-	metaData := GetMetaData(specFile.Vendor, packageName, specFile.Version, config, jwt)
+	packageReference := PackagesReference{
+		Publisher: specFile.Publisher,
+		Name:      packageName,
+		Version:   specFile.Version}
+	metaData := GetMetaData(packageReference, config, jwt)
 
 	if metaData == nil {
 		fmt.Println("Specified package not found. Uploading instead of updating.")
 
 		CheckIfAlreadyPresentAndUpload(packageName, config, jwt)
 	} else {
-		upload(packageName, specFile.Vendor, "", true, config, jwt)
+		upload(packageName, specFile.Publisher, "", true, config, jwt)
 	}
 }
 
@@ -41,7 +45,7 @@ func CheckIfAlreadyPresentAndUpload(packageName string, config *Config, jwt *goc
 
 	specFile, errMessage := ReadAndValidateSpec(packageName)
 
-	if errMessage != nil {
+	if errMessage != "" {
 		fmt.Println(errMessage)
 		return
 	}
@@ -49,40 +53,36 @@ func CheckIfAlreadyPresentAndUpload(packageName string, config *Config, jwt *goc
 	metaData := GetMetaDataListForPackageName(packageName, config, jwt)
 
 	if len(metaData) < 1 || askOperatorForProcedure(metaData) {
-		upload(packageName, specFile.Vendor, "", false, config, jwt)
+		upload(packageName, specFile.Publisher, "", false, config, jwt)
 	}
 }
 
-func upload(packageName, vendor, depth string, update bool, config *Config, openId *gocloak.JWT) {
-
+func upload(packageName, publisher, depth string, update bool, config *Config, openId *gocloak.JWT) {
 	if set.Get(packageName) {
-		fmt.Println(depth + "└─  PackagesReference " + packageName + " already handled")
+		fmt.Println(depth + "└─  Dependency " + packageName + " already handled")
 		return
 	}
 
 	set.Add(packageName)
-
 	fmt.Println(depth + "├─ Packing: " + packageName)
-
 	specFile, errMessage := ReadAndValidateSpec(packageName)
 
-	if errMessage != nil {
-		fmt.Println(depth + "└─  " + *errMessage)
+	if errMessage != "" {
+		fmt.Println(depth + "└─  " + errMessage)
 		return
 	}
 
 	pack := "./" + packageName + ".bpm"
-
 	dependencies, errMessage := readDependencies(*specFile)
 
-	if errMessage != nil {
-		fmt.Println(depth + "└─  Error in PackagesReference: " + *errMessage)
+	if errMessage != "" {
+		fmt.Println(depth + "└─  Error in Dependency: " + errMessage)
 	}
 
 	result := MetaData{
 		Name:         packageName,
 		Version:      specFile.Version,
-		Vendor:       vendor,
+		Publisher:    publisher,
 		FilePath:     pack,
 		Files:        specFile.Files,
 		Dependencies: dependencies,
@@ -92,7 +92,7 @@ func upload(packageName, vendor, depth string, update bool, config *Config, open
 
 	var permission, oldMeta = RequestPermission(result, false, config, openId)
 
-	if update && oldMeta != nil && AskUser(*oldMeta, depth, "│  This will alter the package with all dependencies. Are you sure? ") {
+	if update && oldMeta != nil && AskUser(*oldMeta, depth, "Update Package", "│  This will alter the access to the package with all dependencies. Are you sure? ") {
 		permission, _ = RequestPermission(result, true, config, openId)
 	}
 
@@ -100,7 +100,7 @@ func upload(packageName, vendor, depth string, update bool, config *Config, open
 
 		filesToZip, err := ScanPackageFolder(packageName)
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 
 		filesToZip = MergeStringList(filesToZip, ScanFolderAndFilter(specFile.Files, "./blobs/"))
@@ -110,19 +110,19 @@ func upload(packageName, vendor, depth string, update bool, config *Config, open
 		defer func() {
 			err = os.Remove(result.FilePath)
 			if err != nil {
-				panic(err)
+				log.Fatal(err)
 			}
 		}()
 
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 
 		fmt.Println(depth + "├─ Upload package. Size " + strconv.FormatInt(size/1000000, 10) + "MB")
-
 		err = UploadFile(result.FilePath, depth+"├─", *permission)
+
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 
 		PutMetaData(config.Url, permission.S3location, openId, size)
@@ -131,22 +131,21 @@ func upload(packageName, vendor, depth string, update bool, config *Config, open
 		for _, dependency := range result.Dependencies {
 			fmt.Println(depth + "├─ Handling dependency")
 
-			upload(dependency.Name, dependency.Vendor, "│  "+depth, update, config, openId)
+			upload(dependency.Name, dependency.Publisher, "│  "+depth, update, config, openId)
 		}
 
 		fmt.Println(depth + "└─ Finished packing: " + packageName)
 
 	} else {
 		if oldMeta != nil {
-			fmt.Println(depth + "└─ Skipped. Already present. Use update if you want to replace it")
+			fmt.Println(depth + "└─ Skipped. Already present. Use update if you want to replace it.")
 		} else {
-			fmt.Println(depth + "└─ Skipped. Not a Member of the Vendor: " + result.Vendor)
+			fmt.Println(depth + "└─ Skipped. Not a member of the publisher: " + result.Publisher)
 		}
 	}
 }
 
 func askOperatorForProcedure(data []MetaData) bool {
-
 	fmt.Println("│  Found fhe following packages with similar or same content")
 
 	for _, d := range data {
@@ -165,22 +164,21 @@ func askOperatorForProcedure(data []MetaData) bool {
 	return strings.ToLower(text) == "yes" || strings.ToLower(text) == "y"
 }
 
-func readDependencies(specFile SpecFile) ([]PackagesReference, *string) {
-
+func readDependencies(specFile SpecFile) ([]PackagesReference, string) {
 	var dependencies []PackagesReference
 
 	for _, d := range specFile.Dependencies {
 		dependencySpec, errMessage := ReadAndValidateSpec(d)
 
-		if errMessage != nil {
+		if errMessage != "" {
 			return nil, errMessage
 		}
 
 		dependencies = append(dependencies, PackagesReference{
-			Name:    dependencySpec.Name,
-			Version: dependencySpec.Version,
-			Vendor:  dependencySpec.Vendor}, )
+			Name:      dependencySpec.Name,
+			Version:   dependencySpec.Version,
+			Publisher: dependencySpec.Publisher}, )
 	}
 
-	return dependencies, nil
+	return dependencies, ""
 }

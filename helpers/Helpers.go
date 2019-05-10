@@ -2,13 +2,26 @@ package helpers
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"github.com/blang/semver"
 	. "github.com/evoila/BPM-Client/model"
 	. "gopkg.in/yaml.v2"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 )
+
+func SplitPackageReference(input string) (string, string, string, error) {
+	result := strings.Split(input, ":")
+
+	if len(result) != 3 {
+		return "", "", "", errors.New("invalid input")
+	}
+
+	return result[0], result[1], result[2], nil
+}
 
 func MergeStringList(l1, l2 []string) []string {
 
@@ -36,13 +49,13 @@ func MergeMetaDataList(l1, l2 []MetaData) []MetaData {
 	return l1
 }
 
-func ReadDownloadSpec() (*DownloadSpec, *string) {
+func ReadDownloadSpec() (*DownloadSpec, string) {
 
-	yamlFile, err := ioutil.ReadFile("./packages/download.spec")
+	yamlFile, err := ioutil.ReadFile("./packages/packages.spec")
 	if err != nil {
 		message := "Did not find a download.spec file."
 
-		return nil, &message
+		return nil, message
 	}
 
 	var downloadSpec DownloadSpec
@@ -50,52 +63,76 @@ func ReadDownloadSpec() (*DownloadSpec, *string) {
 
 	if err != nil {
 		message := "The download spec is not valid."
-		return nil, &message
+		return nil, message
 	}
 
-	return &downloadSpec, nil
+	return &downloadSpec, ""
 }
 
-func ReadAndValidateSpec(packageName string) (*SpecFile, *string) {
+func ReadAndValidateSpec(packageName string) (*SpecFile, string) {
 
 	yamlFile, err := ioutil.ReadFile("./packages/" + packageName + "/spec")
 	if err != nil {
 		message := "Did not find a spec file. Is '" + packageName + "' a valid package?"
 
-		return nil, &message
+		return nil, message
 	}
 
 	var specFile SpecFile
 	err = Unmarshal(yamlFile, &specFile)
 
-	if specFile.Name == "" || specFile.Version == "" || specFile.Vendor == "" {
+	if specFile.Name == "" || specFile.Version == "" || specFile.Publisher == "" {
 		message := "The Specfile needs to specify package, version and vendor."
 
-		return nil, &message
+		return nil, message
 	}
 
-	//TODO() return error message if version is not valid
-	//specFile.Version
+	if validateVersion(specFile.Version) {
+		message := "The Version of the package '" + packageName + "' is not Semver conform."
 
-	if err != nil {
-		message := "'" + packageName + "' does not contain a valid spec file."
-
-		return nil, &message
+		return nil, message
 	}
 
-	return &specFile, nil
+	if specFile.Stemcell.MinorVersion != "" {
+		_, err = semver.Make(specFile.Stemcell.MinorVersion)
+
+		if validateVersion(specFile.Stemcell.MinorVersion) {
+			message := "The Stemcell Minor Version of the package '" + packageName + "' is not Semver conform."
+
+			return nil, message
+		}
+
+	}
+
+	if specFile.Stemcell.MinorVersion != "" {
+		_, err = semver.Make(specFile.Stemcell.MajorVersion)
+
+		if validateVersion(specFile.Stemcell.MajorVersion) {
+			message := "The Stemcell Major Version of the package '" + packageName + "' is not Semver conform."
+
+			return nil, message
+		}
+	}
+
+	return &specFile, ""
+}
+
+func validateVersion(version string) bool {
+	_, err := semver.Make(version)
+
+	return err != nil
 }
 
 func WriteConfig(config Config, configLocation string) {
 	data, err := Marshal(config)
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	err = ioutil.WriteFile(configLocation, data, 0644)
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }
 
@@ -103,7 +140,7 @@ func ReadConfig(configLocation string) Config {
 
 	yamlFile, err := ioutil.ReadFile(configLocation)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	var config Config
@@ -111,7 +148,7 @@ func ReadConfig(configLocation string) Config {
 	err = Unmarshal(yamlFile, &config)
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	return config
@@ -124,15 +161,18 @@ func BuildPath(path []string) string {
 
 func MoveToReleaseDir() {
 	dir, err := os.Getwd()
+	err = os.Chdir(dir)
+
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
-	os.Chdir(dir)
 }
 
-func AskUser(data MetaData, depth, message string) bool {
+func AskUser(data MetaData, depth, operation, message string) bool {
 
-	fmt.Println(depth + "├─ Update Package")
+	//"Update Package"
+
+	fmt.Println(depth + "├─ " + operation)
 	fmt.Println(data.String(depth))
 
 	scanner := bufio.NewScanner(os.Stdin)
