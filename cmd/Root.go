@@ -13,7 +13,7 @@ import (
 
 var config Config
 var pack, version, publisher, accessLevel string
-var update, force bool
+var update, boolFlag bool
 
 var rootCmd = &cobra.Command{
 	Use:   "BPM-Client",
@@ -188,7 +188,7 @@ func init() {
 					Name:      pack,
 					Publisher: publisher,
 					Version:   version}
-				Publish(requestBody, accessLevel, &config, openId, force)
+				Publish(requestBody, accessLevel, &config, openId, boolFlag)
 			} else {
 				log.Println("login failed.")
 			}
@@ -199,7 +199,7 @@ func init() {
 	publishPackage.Flags().StringVarP(&version, "version", "v", "", "Version of the package")
 	publishPackage.Flags().StringVarP(&accessLevel, "access-level", "a", "", "The desired access level. Either publisher or public")
 	_ = publishPackage.MarkFlagRequired("access-level")
-	publishPackage.Flags().BoolVarP(&force, "force", "f", false, "Set this flag to skip all prompts")
+	publishPackage.Flags().BoolVarP(&boolFlag, "boolFlag", "f", false, "Set this flag to skip all prompts")
 
 	var search = &cobra.Command{
 		Use:   "search",
@@ -217,14 +217,15 @@ func init() {
 			}
 
 			if pack != "" {
-				SearchByPublisherAndName(publisher, pack, &config, jwt)
+				SearchByPublisherAndName(publisher, pack, &config, jwt, boolFlag)
 			} else {
-				SearchByPublisher(publisher, &config, jwt)
+				SearchByPublisher(publisher, &config, jwt, boolFlag)
 			}
 		},
 	}
 	search.Flags().StringVarP(&pack, "name", "n", "", "The name of the publisher")
 	search.Flags().StringVarP(&publisher, "publisher", "p", "", "The name of the publisher")
+	search.Flags().BoolVarP(&boolFlag, "more", "m", false, "Set this flag to skip all prompts")
 	_ = search.MarkFlagRequired("publisher")
 
 	var register = &cobra.Command{

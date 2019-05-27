@@ -100,7 +100,7 @@ func GetMetaData(requestBody PackagesReference, config *Config, openId *gocloak.
 
 	client := &Client{}
 
-	request, err := NewRequest("GET", BuildPath([]string{config.Url, "package", requestBody.Publisher, requestBody.Name, requestBody.Version}), nil)
+	request, err := NewRequest("GET", BuildPath([]string{config.Url, "package", requestBody.Publisher, requestBody.Name + "?version=" + requestBody.Version}), nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -131,6 +131,7 @@ func GetMetaData(requestBody PackagesReference, config *Config, openId *gocloak.
 
 		return &metaData
 	} else {
+		log.Print("StatusCode: " + strconv.Itoa(resp.StatusCode))
 		return nil
 	}
 }
